@@ -28,7 +28,7 @@ import (
 	"fmt"
 	"github.com/IBM/go-sdk-core/v4/core"
 	"github.com/go-openapi/strfmt"
-	common "github.ibm.com/ibmcloud/databases-go-sdk/common"
+	common "github.com/IBM/experimental-go-sdk/common"
 	"net/http"
 	"reflect"
 	"time"

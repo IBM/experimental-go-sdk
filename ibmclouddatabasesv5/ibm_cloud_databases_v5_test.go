@@ -24,7 +24,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.ibm.com/ibmcloud/databases-go-sdk/ibmclouddatabasesv5"
+	"github.com/IBM/experimental-go-sdk/ibmclouddatabasesv5"
 	"io"
 	"io/ioutil"
 	"net/http"

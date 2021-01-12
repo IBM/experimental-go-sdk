@@ -2584,7 +2584,7 @@ func UnmarshalAutoscalingDiskGroupDiskScalers(m map[string]json.RawMessage, resu
 type AutoscalingDiskGroupDiskScalersCapacity struct {
 	Enabled *bool `json:"enabled,omitempty"`
 
-	FreeSpaceRemainingPercent *int64 `json:"free_space_remaining_percent,omitempty"`
+	FreeSpaceLessThanPercent *int64 `json:"free_space_less_than_percent,omitempty"`
 }
 
 
@@ -2595,7 +2595,7 @@ func UnmarshalAutoscalingDiskGroupDiskScalersCapacity(m map[string]json.RawMessa
 	if err != nil {
 		return
 	}
-	err = core.UnmarshalPrimitive(m, "free_space_remaining_percent", &obj.FreeSpaceRemainingPercent)
+	err = core.UnmarshalPrimitive(m, "free_space_less_than_percent", &obj.FreeSpaceLessThanPercent)
 	if err != nil {
 		return
 	}

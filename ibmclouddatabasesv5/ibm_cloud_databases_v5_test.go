@@ -6435,7 +6435,7 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
 					res.WriteHeader(200)
-					fmt.Fprintf(res, "%s", `{"autoscaling": {"disk": {"scalers": {"capacity": {"enabled": true, "free_space_remaining_percent": 10}, "io_utilization": {"enabled": true, "over_period": "30m", "above_percent": 45}}, "rate": {"increase_percent": 20, "period_seconds": 900, "limit_mb_per_member": 3670016, "units": "mb"}}, "memory": {"scalers": {"io_utilization": {"enabled": true, "over_period": "30m", "above_percent": 45}}, "rate": {"increase_percent": 10, "period_seconds": 900, "limit_mb_per_member": 3670016, "units": "mb"}}, "cpu": {}}}`)
+					fmt.Fprintf(res, "%s", `{"autoscaling": {"disk": {"scalers": {"capacity": {"enabled": true, "free_space_less_than_percent": 10}, "io_utilization": {"enabled": true, "over_period": "30m", "above_percent": 45}}, "rate": {"increase_percent": 20, "period_seconds": 900, "limit_mb_per_member": 3670016, "units": "mb"}}, "memory": {"scalers": {"io_utilization": {"enabled": true, "over_period": "30m", "above_percent": 45}}, "rate": {"increase_percent": 10, "period_seconds": 900, "limit_mb_per_member": 3670016, "units": "mb"}}, "cpu": {}}}`)
 				}))
 			})
 			It(`Invoke GetAutoscalingConditions successfully with retries`, func() {
@@ -6490,7 +6490,7 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
 					res.WriteHeader(200)
-					fmt.Fprintf(res, "%s", `{"autoscaling": {"disk": {"scalers": {"capacity": {"enabled": true, "free_space_remaining_percent": 10}, "io_utilization": {"enabled": true, "over_period": "30m", "above_percent": 45}}, "rate": {"increase_percent": 20, "period_seconds": 900, "limit_mb_per_member": 3670016, "units": "mb"}}, "memory": {"scalers": {"io_utilization": {"enabled": true, "over_period": "30m", "above_percent": 45}}, "rate": {"increase_percent": 10, "period_seconds": 900, "limit_mb_per_member": 3670016, "units": "mb"}}, "cpu": {}}}`)
+					fmt.Fprintf(res, "%s", `{"autoscaling": {"disk": {"scalers": {"capacity": {"enabled": true, "free_space_less_than_percent": 10}, "io_utilization": {"enabled": true, "over_period": "30m", "above_percent": 45}}, "rate": {"increase_percent": 20, "period_seconds": 900, "limit_mb_per_member": 3670016, "units": "mb"}}, "memory": {"scalers": {"io_utilization": {"enabled": true, "over_period": "30m", "above_percent": 45}}, "rate": {"increase_percent": 10, "period_seconds": 900, "limit_mb_per_member": 3670016, "units": "mb"}}, "cpu": {}}}`)
 				}))
 			})
 			It(`Invoke GetAutoscalingConditions successfully`, func() {
@@ -6580,7 +6580,7 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				// Construct an instance of the AutoscalingDiskGroupDiskScalersCapacity model
 				autoscalingDiskGroupDiskScalersCapacityModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDiskScalersCapacity)
 				autoscalingDiskGroupDiskScalersCapacityModel.Enabled = core.BoolPtr(true)
-				autoscalingDiskGroupDiskScalersCapacityModel.FreeSpaceRemainingPercent = core.Int64Ptr(int64(10))
+				autoscalingDiskGroupDiskScalersCapacityModel.FreeSpaceLessThanPercent = core.Int64Ptr(int64(10))
 
 				// Construct an instance of the AutoscalingDiskGroupDiskScalersIoUtilization model
 				autoscalingDiskGroupDiskScalersIoUtilizationModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDiskScalersIoUtilization)
@@ -6682,7 +6682,7 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				// Construct an instance of the AutoscalingDiskGroupDiskScalersCapacity model
 				autoscalingDiskGroupDiskScalersCapacityModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDiskScalersCapacity)
 				autoscalingDiskGroupDiskScalersCapacityModel.Enabled = core.BoolPtr(true)
-				autoscalingDiskGroupDiskScalersCapacityModel.FreeSpaceRemainingPercent = core.Int64Ptr(int64(10))
+				autoscalingDiskGroupDiskScalersCapacityModel.FreeSpaceLessThanPercent = core.Int64Ptr(int64(10))
 
 				// Construct an instance of the AutoscalingDiskGroupDiskScalersIoUtilization model
 				autoscalingDiskGroupDiskScalersIoUtilizationModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDiskScalersIoUtilization)
@@ -6791,7 +6791,7 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				// Construct an instance of the AutoscalingDiskGroupDiskScalersCapacity model
 				autoscalingDiskGroupDiskScalersCapacityModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDiskScalersCapacity)
 				autoscalingDiskGroupDiskScalersCapacityModel.Enabled = core.BoolPtr(true)
-				autoscalingDiskGroupDiskScalersCapacityModel.FreeSpaceRemainingPercent = core.Int64Ptr(int64(10))
+				autoscalingDiskGroupDiskScalersCapacityModel.FreeSpaceLessThanPercent = core.Int64Ptr(int64(10))
 
 				// Construct an instance of the AutoscalingDiskGroupDiskScalersIoUtilization model
 				autoscalingDiskGroupDiskScalersIoUtilizationModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDiskScalersIoUtilization)
@@ -6845,7 +6845,7 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				// Construct an instance of the AutoscalingDiskGroupDiskScalersCapacity model
 				autoscalingDiskGroupDiskScalersCapacityModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDiskScalersCapacity)
 				autoscalingDiskGroupDiskScalersCapacityModel.Enabled = core.BoolPtr(true)
-				autoscalingDiskGroupDiskScalersCapacityModel.FreeSpaceRemainingPercent = core.Int64Ptr(int64(10))
+				autoscalingDiskGroupDiskScalersCapacityModel.FreeSpaceLessThanPercent = core.Int64Ptr(int64(10))
 
 				// Construct an instance of the AutoscalingDiskGroupDiskScalersIoUtilization model
 				autoscalingDiskGroupDiskScalersIoUtilizationModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDiskScalersIoUtilization)
@@ -9210,9 +9210,9 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				autoscalingDiskGroupDiskScalersCapacityModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDiskScalersCapacity)
 				Expect(autoscalingDiskGroupDiskScalersCapacityModel).ToNot(BeNil())
 				autoscalingDiskGroupDiskScalersCapacityModel.Enabled = core.BoolPtr(true)
-				autoscalingDiskGroupDiskScalersCapacityModel.FreeSpaceRemainingPercent = core.Int64Ptr(int64(10))
+				autoscalingDiskGroupDiskScalersCapacityModel.FreeSpaceLessThanPercent = core.Int64Ptr(int64(10))
 				Expect(autoscalingDiskGroupDiskScalersCapacityModel.Enabled).To(Equal(core.BoolPtr(true)))
-				Expect(autoscalingDiskGroupDiskScalersCapacityModel.FreeSpaceRemainingPercent).To(Equal(core.Int64Ptr(int64(10))))
+				Expect(autoscalingDiskGroupDiskScalersCapacityModel.FreeSpaceLessThanPercent).To(Equal(core.Int64Ptr(int64(10))))
 
 				// Construct an instance of the AutoscalingDiskGroupDiskScalersIoUtilization model
 				autoscalingDiskGroupDiskScalersIoUtilizationModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDiskScalersIoUtilization)

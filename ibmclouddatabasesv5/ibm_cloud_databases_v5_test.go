@@ -1,5 +1,5 @@
 /**
- * (C) Copyright IBM Corp. 2020.
+ * (C) Copyright IBM Corp. 2021.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/IBM/experimental-go-sdk/ibmclouddatabasesv5"
 	"github.com/IBM/go-sdk-core/v4/core"
 	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/IBM/experimental-go-sdk/ibmclouddatabasesv5"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -77,6 +77,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
 				Expect(serviceErr).To(BeNil())
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url from constructor successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -87,6 +93,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url programatically successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -98,6 +110,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 		})
 		Context(`Using external config, construct service client instances with error: Invalid Auth`, func() {
@@ -133,6 +151,16 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).ToNot(BeNil())
 				ClearTestEnvironment(testEnvironment)
 			})
+		})
+	})
+	Describe(`Regional endpoint tests`, func() {
+		It(`GetServiceURLForRegion(region string)`, func() {
+			var url string
+			var err error
+			url, err = ibmclouddatabasesv5.GetServiceURLForRegion("INVALID_REGION")
+			Expect(url).To(BeEmpty())
+			Expect(err).ToNot(BeNil())
+			fmt.Fprintf(GinkgoWriter, "Expected error: %s\n", err.Error())
 		})
 	})
 	Describe(`GetDeployables(getDeployablesOptions *GetDeployablesOptions) - Operation response error`, func() {
@@ -182,10 +210,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetDeployables(getDeployablesOptions *GetDeployablesOptions)`, func() {
 		getDeployablesPath := "/deployables"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -194,7 +220,60 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"deployables": [{"type": "elasticsearch", "versions": [{"version": "5.6", "status": "stable", "is_preferred": true, "transitions": [{"application": "elasticsearch", "method": "restore", "from_version": "5.6", "to_version": "6.7"}]}]}]}`)
+				}))
+			})
+			It(`Invoke GetDeployables successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetDeployablesOptions model
+				getDeployablesOptionsModel := new(ibmclouddatabasesv5.GetDeployablesOptions)
+				getDeployablesOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetDeployablesWithContext(ctx, getDeployablesOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetDeployables(getDeployablesOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetDeployablesWithContext(ctx, getDeployablesOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getDeployablesPath))
+					Expect(req.Method).To(Equal("GET"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -209,7 +288,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetDeployables(nil)
@@ -227,30 +305,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetDeployablesWithContext(ctx, getDeployablesOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetDeployables(getDeployablesOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetDeployablesWithContext(ctx, getDeployablesOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetDeployables with error: Operation request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -324,10 +378,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetRegions(getRegionsOptions *GetRegionsOptions)`, func() {
 		getRegionsPath := "/regions"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -336,7 +388,60 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"regions": ["Regions"]}`)
+				}))
+			})
+			It(`Invoke GetRegions successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetRegionsOptions model
+				getRegionsOptionsModel := new(ibmclouddatabasesv5.GetRegionsOptions)
+				getRegionsOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetRegionsWithContext(ctx, getRegionsOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetRegions(getRegionsOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetRegionsWithContext(ctx, getRegionsOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getRegionsPath))
+					Expect(req.Method).To(Equal("GET"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -351,7 +456,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetRegions(nil)
@@ -369,30 +473,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetRegionsWithContext(ctx, getRegionsOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetRegions(getRegionsOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetRegionsWithContext(ctx, getRegionsOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetRegions with error: Operation request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -467,10 +547,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetDeploymentInfo(getDeploymentInfoOptions *GetDeploymentInfoOptions)`, func() {
 		getDeploymentInfoPath := "/deployments/testString"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -479,7 +557,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"deployment": {"id": "crn:v1:bluemix:public:databases-for-redis:us-south:a/274074dce64e9c423ffc238516c755e1:29caf0e7-120f-4da8-9551-3abf57ebcfc7::", "name": "crn:v1:bluemix:public:databases-for-redis:us-south:a/274074dce64e9c423ffc238516c755e1:29caf0e7-120f-4da8-9551-3abf57ebcfc7::", "type": "redis", "platform_options": {"anyKey": "anyValue"}, "version": "4", "admin_usernames": "database: admin", "enable_public_endpoints": true, "enable_private_endpoints": false}}`)
+				}))
+			})
+			It(`Invoke GetDeploymentInfo successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetDeploymentInfoOptions model
+				getDeploymentInfoOptionsModel := new(ibmclouddatabasesv5.GetDeploymentInfoOptions)
+				getDeploymentInfoOptionsModel.ID = core.StringPtr("testString")
+				getDeploymentInfoOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetDeploymentInfoWithContext(ctx, getDeploymentInfoOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetDeploymentInfo(getDeploymentInfoOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetDeploymentInfoWithContext(ctx, getDeploymentInfoOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getDeploymentInfoPath))
+					Expect(req.Method).To(Equal("GET"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -494,7 +626,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetDeploymentInfo(nil)
@@ -513,30 +644,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetDeploymentInfoWithContext(ctx, getDeploymentInfoOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetDeploymentInfo(getDeploymentInfoOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetDeploymentInfoWithContext(ctx, getDeploymentInfoOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetDeploymentInfo with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -613,6 +720,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
 				Expect(serviceErr).To(BeNil())
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url from constructor successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -623,6 +736,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url programatically successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -634,6 +753,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 		})
 		Context(`Using external config, construct service client instances with error: Invalid Auth`, func() {
@@ -669,6 +794,16 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).ToNot(BeNil())
 				ClearTestEnvironment(testEnvironment)
 			})
+		})
+	})
+	Describe(`Regional endpoint tests`, func() {
+		It(`GetServiceURLForRegion(region string)`, func() {
+			var url string
+			var err error
+			url, err = ibmclouddatabasesv5.GetServiceURLForRegion("INVALID_REGION")
+			Expect(url).To(BeEmpty())
+			Expect(err).ToNot(BeNil())
+			fmt.Fprintf(GinkgoWriter, "Expected error: %s\n", err.Error())
 		})
 	})
 	Describe(`CreateDatabaseUser(createDatabaseUserOptions *CreateDatabaseUserOptions) - Operation response error`, func() {
@@ -727,10 +862,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`CreateDatabaseUser(createDatabaseUserOptions *CreateDatabaseUserOptions)`, func() {
 		createDatabaseUserPath := "/deployments/testString/users/testString"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -755,7 +888,85 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(202)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke CreateDatabaseUser successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the CreateDatabaseUserRequestUser model
+				createDatabaseUserRequestUserModel := new(ibmclouddatabasesv5.CreateDatabaseUserRequestUser)
+				createDatabaseUserRequestUserModel.UserType = core.StringPtr("database")
+				createDatabaseUserRequestUserModel.Username = core.StringPtr("james")
+				createDatabaseUserRequestUserModel.Password = core.StringPtr("kickoutthe")
+
+				// Construct an instance of the CreateDatabaseUserOptions model
+				createDatabaseUserOptionsModel := new(ibmclouddatabasesv5.CreateDatabaseUserOptions)
+				createDatabaseUserOptionsModel.ID = core.StringPtr("testString")
+				createDatabaseUserOptionsModel.UserType = core.StringPtr("testString")
+				createDatabaseUserOptionsModel.User = createDatabaseUserRequestUserModel
+				createDatabaseUserOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.CreateDatabaseUserWithContext(ctx, createDatabaseUserOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.CreateDatabaseUser(createDatabaseUserOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.CreateDatabaseUserWithContext(ctx, createDatabaseUserOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(createDatabaseUserPath))
+					Expect(req.Method).To(Equal("POST"))
+
+					// For gzip-disabled operation, verify Content-Encoding is not set.
+					Expect(req.Header.Get("Content-Encoding")).To(BeEmpty())
+
+					// If there is a body, then make sure we can read it
+					bodyBuf := new(bytes.Buffer)
+					if req.Header.Get("Content-Encoding") == "gzip" {
+						body, err := core.NewGzipDecompressionReader(req.Body)
+						Expect(err).To(BeNil())
+						_, err = bodyBuf.ReadFrom(body)
+						Expect(err).To(BeNil())
+					} else {
+						_, err := bodyBuf.ReadFrom(req.Body)
+						Expect(err).To(BeNil())
+					}
+					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -770,7 +981,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.CreateDatabaseUser(nil)
@@ -797,30 +1007,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.CreateDatabaseUserWithContext(ctx, createDatabaseUserOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.CreateDatabaseUser(createDatabaseUserOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.CreateDatabaseUserWithContext(ctx, createDatabaseUserOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke CreateDatabaseUser with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -918,10 +1104,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`ChangeUserPassword(changeUserPasswordOptions *ChangeUserPasswordOptions)`, func() {
 		changeUserPasswordPath := "/deployments/testString/users/testString/testString"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -946,7 +1130,84 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke ChangeUserPassword successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the APasswordSettingUser model
+				aPasswordSettingUserModel := new(ibmclouddatabasesv5.APasswordSettingUser)
+				aPasswordSettingUserModel.Password = core.StringPtr("xyzzy")
+
+				// Construct an instance of the ChangeUserPasswordOptions model
+				changeUserPasswordOptionsModel := new(ibmclouddatabasesv5.ChangeUserPasswordOptions)
+				changeUserPasswordOptionsModel.ID = core.StringPtr("testString")
+				changeUserPasswordOptionsModel.UserType = core.StringPtr("testString")
+				changeUserPasswordOptionsModel.Username = core.StringPtr("testString")
+				changeUserPasswordOptionsModel.User = aPasswordSettingUserModel
+				changeUserPasswordOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.ChangeUserPasswordWithContext(ctx, changeUserPasswordOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.ChangeUserPassword(changeUserPasswordOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.ChangeUserPasswordWithContext(ctx, changeUserPasswordOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(changeUserPasswordPath))
+					Expect(req.Method).To(Equal("PATCH"))
+
+					// For gzip-disabled operation, verify Content-Encoding is not set.
+					Expect(req.Header.Get("Content-Encoding")).To(BeEmpty())
+
+					// If there is a body, then make sure we can read it
+					bodyBuf := new(bytes.Buffer)
+					if req.Header.Get("Content-Encoding") == "gzip" {
+						body, err := core.NewGzipDecompressionReader(req.Body)
+						Expect(err).To(BeNil())
+						_, err = bodyBuf.ReadFrom(body)
+						Expect(err).To(BeNil())
+					} else {
+						_, err := bodyBuf.ReadFrom(req.Body)
+						Expect(err).To(BeNil())
+					}
+					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -961,7 +1222,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.ChangeUserPassword(nil)
@@ -987,30 +1247,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.ChangeUserPasswordWithContext(ctx, changeUserPasswordOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.ChangeUserPassword(changeUserPasswordOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.ChangeUserPasswordWithContext(ctx, changeUserPasswordOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke ChangeUserPassword with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -1102,10 +1338,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`DeleteDatabaseUser(deleteDatabaseUserOptions *DeleteDatabaseUserOptions)`, func() {
 		deleteDatabaseUserPath := "/deployments/testString/users/testString/testString"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -1114,7 +1348,63 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("DELETE"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(202)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke DeleteDatabaseUser successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the DeleteDatabaseUserOptions model
+				deleteDatabaseUserOptionsModel := new(ibmclouddatabasesv5.DeleteDatabaseUserOptions)
+				deleteDatabaseUserOptionsModel.ID = core.StringPtr("testString")
+				deleteDatabaseUserOptionsModel.UserType = core.StringPtr("testString")
+				deleteDatabaseUserOptionsModel.Username = core.StringPtr("testString")
+				deleteDatabaseUserOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.DeleteDatabaseUserWithContext(ctx, deleteDatabaseUserOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.DeleteDatabaseUser(deleteDatabaseUserOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.DeleteDatabaseUserWithContext(ctx, deleteDatabaseUserOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(deleteDatabaseUserPath))
+					Expect(req.Method).To(Equal("DELETE"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -1129,7 +1419,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.DeleteDatabaseUser(nil)
@@ -1150,30 +1439,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.DeleteDatabaseUserWithContext(ctx, deleteDatabaseUserOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.DeleteDatabaseUser(deleteDatabaseUserOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.DeleteDatabaseUserWithContext(ctx, deleteDatabaseUserOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke DeleteDatabaseUser with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -1260,10 +1525,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetUser(getUserOptions *GetUserOptions)`, func() {
 		getUserPath := "/deployments/testString/users/testString/"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -1272,7 +1535,63 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}`)
+				}))
+			})
+			It(`Invoke GetUser successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetUserOptions model
+				getUserOptionsModel := new(ibmclouddatabasesv5.GetUserOptions)
+				getUserOptionsModel.ID = core.StringPtr("testString")
+				getUserOptionsModel.UserID = core.StringPtr("testString")
+				getUserOptionsModel.EndpointType = core.StringPtr("public")
+				getUserOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetUserWithContext(ctx, getUserOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetUser(getUserOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetUserWithContext(ctx, getUserOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getUserPath))
+					Expect(req.Method).To(Equal("GET"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -1287,7 +1606,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetUser(nil)
@@ -1308,30 +1626,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetUserWithContext(ctx, getUserOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetUser(getUserOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetUserWithContext(ctx, getUserOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetUser with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -1410,6 +1704,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
 				Expect(serviceErr).To(BeNil())
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url from constructor successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -1420,6 +1720,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url programatically successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -1431,6 +1737,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 		})
 		Context(`Using external config, construct service client instances with error: Invalid Auth`, func() {
@@ -1466,6 +1778,16 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).ToNot(BeNil())
 				ClearTestEnvironment(testEnvironment)
 			})
+		})
+	})
+	Describe(`Regional endpoint tests`, func() {
+		It(`GetServiceURLForRegion(region string)`, func() {
+			var url string
+			var err error
+			url, err = ibmclouddatabasesv5.GetServiceURLForRegion("INVALID_REGION")
+			Expect(url).To(BeEmpty())
+			Expect(err).ToNot(BeNil())
+			fmt.Fprintf(GinkgoWriter, "Expected error: %s\n", err.Error())
 		})
 	})
 	Describe(`SetDatabaseConfiguration(setDatabaseConfigurationOptions *SetDatabaseConfigurationOptions) - Operation response error`, func() {
@@ -1531,10 +1853,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`SetDatabaseConfiguration(setDatabaseConfigurationOptions *SetDatabaseConfigurationOptions)`, func() {
 		setDatabaseConfigurationPath := "/deployments/testString/configuration"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -1559,7 +1879,92 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke SetDatabaseConfiguration successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the SetConfigurationConfigurationPGConfiguration model
+				setConfigurationConfigurationModel := new(ibmclouddatabasesv5.SetConfigurationConfigurationPGConfiguration)
+				setConfigurationConfigurationModel.MaxConnections = core.Int64Ptr(int64(115))
+				setConfigurationConfigurationModel.MaxPreparedTransactions = core.Int64Ptr(int64(0))
+				setConfigurationConfigurationModel.DeadlockTimeout = core.Int64Ptr(int64(100))
+				setConfigurationConfigurationModel.EffectiveIoConcurrency = core.Int64Ptr(int64(1))
+				setConfigurationConfigurationModel.MaxReplicationSlots = core.Int64Ptr(int64(10))
+				setConfigurationConfigurationModel.MaxWalSenders = core.Int64Ptr(int64(12))
+				setConfigurationConfigurationModel.SharedBuffers = core.Int64Ptr(int64(16))
+				setConfigurationConfigurationModel.SynchronousCommit = core.StringPtr("local")
+				setConfigurationConfigurationModel.WalLevel = core.StringPtr("hot_standby")
+				setConfigurationConfigurationModel.ArchiveTimeout = core.Int64Ptr(int64(300))
+				setConfigurationConfigurationModel.LogMinDurationStatement = core.Int64Ptr(int64(100))
+
+				// Construct an instance of the SetDatabaseConfigurationOptions model
+				setDatabaseConfigurationOptionsModel := new(ibmclouddatabasesv5.SetDatabaseConfigurationOptions)
+				setDatabaseConfigurationOptionsModel.ID = core.StringPtr("testString")
+				setDatabaseConfigurationOptionsModel.Configuration = setConfigurationConfigurationModel
+				setDatabaseConfigurationOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.SetDatabaseConfigurationWithContext(ctx, setDatabaseConfigurationOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.SetDatabaseConfiguration(setDatabaseConfigurationOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.SetDatabaseConfigurationWithContext(ctx, setDatabaseConfigurationOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(setDatabaseConfigurationPath))
+					Expect(req.Method).To(Equal("PATCH"))
+
+					// For gzip-disabled operation, verify Content-Encoding is not set.
+					Expect(req.Header.Get("Content-Encoding")).To(BeEmpty())
+
+					// If there is a body, then make sure we can read it
+					bodyBuf := new(bytes.Buffer)
+					if req.Header.Get("Content-Encoding") == "gzip" {
+						body, err := core.NewGzipDecompressionReader(req.Body)
+						Expect(err).To(BeNil())
+						_, err = bodyBuf.ReadFrom(body)
+						Expect(err).To(BeNil())
+					} else {
+						_, err := bodyBuf.ReadFrom(req.Body)
+						Expect(err).To(BeNil())
+					}
+					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -1574,7 +1979,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.SetDatabaseConfiguration(nil)
@@ -1608,30 +2012,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.SetDatabaseConfigurationWithContext(ctx, setDatabaseConfigurationOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.SetDatabaseConfiguration(setDatabaseConfigurationOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.SetDatabaseConfigurationWithContext(ctx, setDatabaseConfigurationOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke SetDatabaseConfiguration with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -1729,10 +2109,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetDatabaseConfigurationSchema(getDatabaseConfigurationSchemaOptions *GetDatabaseConfigurationSchemaOptions)`, func() {
 		getDatabaseConfigurationSchemaPath := "/deployments/testString/configuration/schema"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -1741,7 +2119,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"schema": {"schema": {"max_connections": {"customer_configurable": true, "default": 7, "default_description": "DefaultDescription", "description": "Description", "kind": "Kind", "requires_restart": false, "min": 3, "max": 3, "step": 4}, "max_prepared_connections": {"customer_configurable": true, "default": 7, "default_description": "DefaultDescription", "description": "Description", "kind": "Kind", "requires_restart": false, "min": 3, "max": 3, "step": 4}, "backup_retention_period": {"customer_configurable": true, "default": 7, "default_description": "DefaultDescription", "description": "Description", "kind": "Kind", "requires_restart": false, "min": 3, "max": 3, "step": 4}, "deadlock_timeout": {"customer_configurable": true, "default": 7, "default_description": "DefaultDescription", "description": "Description", "kind": "Kind", "requires_restart": false, "min": 3, "max": 3, "step": 4}, "effective_io_concurrency": {"customer_configurable": true, "default": 7, "default_description": "DefaultDescription", "description": "Description", "kind": "Kind", "requires_restart": false, "min": 3, "max": 3, "step": 4}, "max_replication_slots": {"customer_configurable": true, "default": 7, "default_description": "DefaultDescription", "description": "Description", "kind": "Kind", "requires_restart": false, "min": 3, "max": 3, "step": 4}, "max_wal_senders": {"customer_configurable": true, "default": 7, "default_description": "DefaultDescription", "description": "Description", "kind": "Kind", "requires_restart": false, "min": 3, "max": 3, "step": 4}, "shared_buffers": {"customer_configurable": true, "default": 7, "default_description": "DefaultDescription", "description": "Description", "kind": "Kind", "requires_restart": false, "min": 3, "max": 3, "step": 4}, "synchronous_commit": {"customer_configurable": true, "default": 7, "default_description": "DefaultDescription", "description": "Description", "kind": "Kind", "requires_restart": false, "choices": ["Choices"]}, "wal_level": {"customer_configurable": true, "default": 7, "default_description": "DefaultDescription", "description": "Description", "kind": "Kind", "requires_restart": false, "choices": ["Choices"]}, "archive_timeout": {"customer_configurable": true, "default": 7, "default_description": "DefaultDescription", "description": "Description", "kind": "Kind", "requires_restart": false, "min": 3, "max": 3, "step": 4}, "log_min_duration_statement": {"customer_configurable": true, "default": 7, "default_description": "DefaultDescription", "description": "Description", "kind": "Kind", "requires_restart": false, "min": 3, "max": 3, "step": 4}}}}`)
+				}))
+			})
+			It(`Invoke GetDatabaseConfigurationSchema successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetDatabaseConfigurationSchemaOptions model
+				getDatabaseConfigurationSchemaOptionsModel := new(ibmclouddatabasesv5.GetDatabaseConfigurationSchemaOptions)
+				getDatabaseConfigurationSchemaOptionsModel.ID = core.StringPtr("testString")
+				getDatabaseConfigurationSchemaOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetDatabaseConfigurationSchemaWithContext(ctx, getDatabaseConfigurationSchemaOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetDatabaseConfigurationSchema(getDatabaseConfigurationSchemaOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetDatabaseConfigurationSchemaWithContext(ctx, getDatabaseConfigurationSchemaOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getDatabaseConfigurationSchemaPath))
+					Expect(req.Method).To(Equal("GET"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -1756,7 +2188,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetDatabaseConfigurationSchema(nil)
@@ -1775,30 +2206,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetDatabaseConfigurationSchemaWithContext(ctx, getDatabaseConfigurationSchemaOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetDatabaseConfigurationSchema(getDatabaseConfigurationSchemaOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetDatabaseConfigurationSchemaWithContext(ctx, getDatabaseConfigurationSchemaOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetDatabaseConfigurationSchema with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -1875,6 +2282,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
 				Expect(serviceErr).To(BeNil())
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url from constructor successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -1885,6 +2298,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url programatically successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -1896,6 +2315,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 		})
 		Context(`Using external config, construct service client instances with error: Invalid Auth`, func() {
@@ -1931,6 +2356,16 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).ToNot(BeNil())
 				ClearTestEnvironment(testEnvironment)
 			})
+		})
+	})
+	Describe(`Regional endpoint tests`, func() {
+		It(`GetServiceURLForRegion(region string)`, func() {
+			var url string
+			var err error
+			url, err = ibmclouddatabasesv5.GetServiceURLForRegion("INVALID_REGION")
+			Expect(url).To(BeEmpty())
+			Expect(err).ToNot(BeNil())
+			fmt.Fprintf(GinkgoWriter, "Expected error: %s\n", err.Error())
 		})
 	})
 	Describe(`GetRemotes(getRemotesOptions *GetRemotesOptions) - Operation response error`, func() {
@@ -1981,10 +2416,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetRemotes(getRemotesOptions *GetRemotesOptions)`, func() {
 		getRemotesPath := "/deployments/testString/remotes"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -1993,7 +2426,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"remotes": {"leader": "01f30581-54f8-41a4-8193-4a04cc022e9b-h", "replicas": ["Replicas"]}}`)
+				}))
+			})
+			It(`Invoke GetRemotes successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetRemotesOptions model
+				getRemotesOptionsModel := new(ibmclouddatabasesv5.GetRemotesOptions)
+				getRemotesOptionsModel.ID = core.StringPtr("testString")
+				getRemotesOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetRemotesWithContext(ctx, getRemotesOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetRemotes(getRemotesOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetRemotesWithContext(ctx, getRemotesOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getRemotesPath))
+					Expect(req.Method).To(Equal("GET"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -2008,7 +2495,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetRemotes(nil)
@@ -2027,30 +2513,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetRemotesWithContext(ctx, getRemotesOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetRemotes(getRemotesOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetRemotesWithContext(ctx, getRemotesOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetRemotes with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -2139,10 +2601,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`SetRemotes(setRemotesOptions *SetRemotesOptions)`, func() {
 		setRemotesPath := "/deployments/testString/remotes"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -2167,7 +2627,83 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke SetRemotes successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the SetRemotesRequestRemotes model
+				setRemotesRequestRemotesModel := new(ibmclouddatabasesv5.SetRemotesRequestRemotes)
+				setRemotesRequestRemotesModel.Leader = core.StringPtr("testString")
+
+				// Construct an instance of the SetRemotesOptions model
+				setRemotesOptionsModel := new(ibmclouddatabasesv5.SetRemotesOptions)
+				setRemotesOptionsModel.ID = core.StringPtr("testString")
+				setRemotesOptionsModel.Remotes = setRemotesRequestRemotesModel
+				setRemotesOptionsModel.SkipInitialBackup = core.BoolPtr(true)
+				setRemotesOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.SetRemotesWithContext(ctx, setRemotesOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.SetRemotes(setRemotesOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.SetRemotesWithContext(ctx, setRemotesOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(setRemotesPath))
+					Expect(req.Method).To(Equal("PATCH"))
+
+					// For gzip-disabled operation, verify Content-Encoding is not set.
+					Expect(req.Header.Get("Content-Encoding")).To(BeEmpty())
+
+					// If there is a body, then make sure we can read it
+					bodyBuf := new(bytes.Buffer)
+					if req.Header.Get("Content-Encoding") == "gzip" {
+						body, err := core.NewGzipDecompressionReader(req.Body)
+						Expect(err).To(BeNil())
+						_, err = bodyBuf.ReadFrom(body)
+						Expect(err).To(BeNil())
+					} else {
+						_, err := bodyBuf.ReadFrom(req.Body)
+						Expect(err).To(BeNil())
+					}
+					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -2182,7 +2718,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.SetRemotes(nil)
@@ -2207,30 +2742,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.SetRemotesWithContext(ctx, setRemotesOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.SetRemotes(setRemotesOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.SetRemotesWithContext(ctx, setRemotesOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke SetRemotes with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -2319,10 +2830,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetRemotesSchema(getRemotesSchemaOptions *GetRemotesSchemaOptions)`, func() {
 		getRemotesSchemaPath := "/deployments/testString/remotes/resync"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -2331,7 +2840,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("POST"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke GetRemotesSchema successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetRemotesSchemaOptions model
+				getRemotesSchemaOptionsModel := new(ibmclouddatabasesv5.GetRemotesSchemaOptions)
+				getRemotesSchemaOptionsModel.ID = core.StringPtr("testString")
+				getRemotesSchemaOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetRemotesSchemaWithContext(ctx, getRemotesSchemaOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetRemotesSchema(getRemotesSchemaOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetRemotesSchemaWithContext(ctx, getRemotesSchemaOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getRemotesSchemaPath))
+					Expect(req.Method).To(Equal("POST"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -2346,7 +2909,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetRemotesSchema(nil)
@@ -2365,30 +2927,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetRemotesSchemaWithContext(ctx, getRemotesSchemaOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetRemotesSchema(getRemotesSchemaOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetRemotesSchemaWithContext(ctx, getRemotesSchemaOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetRemotesSchema with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -2476,10 +3014,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`SetPromotion(setPromotionOptions *SetPromotionOptions)`, func() {
 		setPromotionPath := "/deployments/testString/remotes/promotion"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -2504,7 +3040,82 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke SetPromotion successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the SetPromotionPromotionPromote model
+				setPromotionPromotionModel := new(ibmclouddatabasesv5.SetPromotionPromotionPromote)
+				setPromotionPromotionModel.Promotion = make(map[string]interface{})
+
+				// Construct an instance of the SetPromotionOptions model
+				setPromotionOptionsModel := new(ibmclouddatabasesv5.SetPromotionOptions)
+				setPromotionOptionsModel.ID = core.StringPtr("testString")
+				setPromotionOptionsModel.Promotion = setPromotionPromotionModel
+				setPromotionOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.SetPromotionWithContext(ctx, setPromotionOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.SetPromotion(setPromotionOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.SetPromotionWithContext(ctx, setPromotionOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(setPromotionPath))
+					Expect(req.Method).To(Equal("POST"))
+
+					// For gzip-disabled operation, verify Content-Encoding is not set.
+					Expect(req.Header.Get("Content-Encoding")).To(BeEmpty())
+
+					// If there is a body, then make sure we can read it
+					bodyBuf := new(bytes.Buffer)
+					if req.Header.Get("Content-Encoding") == "gzip" {
+						body, err := core.NewGzipDecompressionReader(req.Body)
+						Expect(err).To(BeNil())
+						_, err = bodyBuf.ReadFrom(body)
+						Expect(err).To(BeNil())
+					} else {
+						_, err := bodyBuf.ReadFrom(req.Body)
+						Expect(err).To(BeNil())
+					}
+					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -2519,7 +3130,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.SetPromotion(nil)
@@ -2543,30 +3153,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.SetPromotionWithContext(ctx, setPromotionOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.SetPromotion(setPromotionOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.SetPromotionWithContext(ctx, setPromotionOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke SetPromotion with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -2648,6 +3234,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
 				Expect(serviceErr).To(BeNil())
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url from constructor successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -2658,6 +3250,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url programatically successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -2669,6 +3267,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 		})
 		Context(`Using external config, construct service client instances with error: Invalid Auth`, func() {
@@ -2704,6 +3308,16 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).ToNot(BeNil())
 				ClearTestEnvironment(testEnvironment)
 			})
+		})
+	})
+	Describe(`Regional endpoint tests`, func() {
+		It(`GetServiceURLForRegion(region string)`, func() {
+			var url string
+			var err error
+			url, err = ibmclouddatabasesv5.GetServiceURLForRegion("INVALID_REGION")
+			Expect(url).To(BeEmpty())
+			Expect(err).ToNot(BeNil())
+			fmt.Fprintf(GinkgoWriter, "Expected error: %s\n", err.Error())
 		})
 	})
 	Describe(`GetDeploymentTasks(getDeploymentTasksOptions *GetDeploymentTasksOptions) - Operation response error`, func() {
@@ -2754,10 +3368,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetDeploymentTasks(getDeploymentTasksOptions *GetDeploymentTasksOptions)`, func() {
 		getDeploymentTasksPath := "/deployments/testString/tasks"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -2766,7 +3378,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"tasks": [{"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}]}`)
+				}))
+			})
+			It(`Invoke GetDeploymentTasks successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetDeploymentTasksOptions model
+				getDeploymentTasksOptionsModel := new(ibmclouddatabasesv5.GetDeploymentTasksOptions)
+				getDeploymentTasksOptionsModel.ID = core.StringPtr("testString")
+				getDeploymentTasksOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetDeploymentTasksWithContext(ctx, getDeploymentTasksOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetDeploymentTasks(getDeploymentTasksOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetDeploymentTasksWithContext(ctx, getDeploymentTasksOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getDeploymentTasksPath))
+					Expect(req.Method).To(Equal("GET"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -2781,7 +3447,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetDeploymentTasks(nil)
@@ -2800,30 +3465,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetDeploymentTasksWithContext(ctx, getDeploymentTasksOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetDeploymentTasks(getDeploymentTasksOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetDeploymentTasksWithContext(ctx, getDeploymentTasksOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetDeploymentTasks with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -2906,10 +3547,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetTasks(getTasksOptions *GetTasksOptions)`, func() {
 		getTasksPath := "/tasks/testString"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -2918,7 +3557,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke GetTasks successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetTasksOptions model
+				getTasksOptionsModel := new(ibmclouddatabasesv5.GetTasksOptions)
+				getTasksOptionsModel.ID = core.StringPtr("testString")
+				getTasksOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetTasksWithContext(ctx, getTasksOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetTasks(getTasksOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetTasksWithContext(ctx, getTasksOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getTasksPath))
+					Expect(req.Method).To(Equal("GET"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -2933,7 +3626,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetTasks(nil)
@@ -2952,30 +3644,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetTasksWithContext(ctx, getTasksOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetTasks(getTasksOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetTasksWithContext(ctx, getTasksOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetTasks with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -3052,6 +3720,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
 				Expect(serviceErr).To(BeNil())
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url from constructor successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -3062,6 +3736,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url programatically successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -3073,6 +3753,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 		})
 		Context(`Using external config, construct service client instances with error: Invalid Auth`, func() {
@@ -3108,6 +3794,16 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).ToNot(BeNil())
 				ClearTestEnvironment(testEnvironment)
 			})
+		})
+	})
+	Describe(`Regional endpoint tests`, func() {
+		It(`GetServiceURLForRegion(region string)`, func() {
+			var url string
+			var err error
+			url, err = ibmclouddatabasesv5.GetServiceURLForRegion("INVALID_REGION")
+			Expect(url).To(BeEmpty())
+			Expect(err).ToNot(BeNil())
+			fmt.Fprintf(GinkgoWriter, "Expected error: %s\n", err.Error())
 		})
 	})
 	Describe(`GetBackupInfo(getBackupInfoOptions *GetBackupInfoOptions) - Operation response error`, func() {
@@ -3158,10 +3854,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetBackupInfo(getBackupInfoOptions *GetBackupInfoOptions)`, func() {
 		getBackupInfoPath := "/backups/testString"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -3170,7 +3864,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"backup": {"id": "5a970218cb7544000671c094", "deployment_id": "595eada310b7ac00116dd48b", "type": "scheduled", "status": "running", "is_downloadable": true, "is_restorable": true, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke GetBackupInfo successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetBackupInfoOptions model
+				getBackupInfoOptionsModel := new(ibmclouddatabasesv5.GetBackupInfoOptions)
+				getBackupInfoOptionsModel.BackupID = core.StringPtr("testString")
+				getBackupInfoOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetBackupInfoWithContext(ctx, getBackupInfoOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetBackupInfo(getBackupInfoOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetBackupInfoWithContext(ctx, getBackupInfoOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getBackupInfoPath))
+					Expect(req.Method).To(Equal("GET"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -3185,7 +3933,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetBackupInfo(nil)
@@ -3204,30 +3951,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetBackupInfoWithContext(ctx, getBackupInfoOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetBackupInfo(getBackupInfoOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetBackupInfoWithContext(ctx, getBackupInfoOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetBackupInfo with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -3310,10 +4033,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetDeploymentBackups(getDeploymentBackupsOptions *GetDeploymentBackupsOptions)`, func() {
 		getDeploymentBackupsPath := "/deployments/testString/backups"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -3322,7 +4043,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"backups": [{"id": "5a970218cb7544000671c094", "deployment_id": "595eada310b7ac00116dd48b", "type": "scheduled", "status": "running", "is_downloadable": true, "is_restorable": true, "created_at": "2019-01-01T12:00:00"}]}`)
+				}))
+			})
+			It(`Invoke GetDeploymentBackups successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetDeploymentBackupsOptions model
+				getDeploymentBackupsOptionsModel := new(ibmclouddatabasesv5.GetDeploymentBackupsOptions)
+				getDeploymentBackupsOptionsModel.ID = core.StringPtr("testString")
+				getDeploymentBackupsOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetDeploymentBackupsWithContext(ctx, getDeploymentBackupsOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetDeploymentBackups(getDeploymentBackupsOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetDeploymentBackupsWithContext(ctx, getDeploymentBackupsOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getDeploymentBackupsPath))
+					Expect(req.Method).To(Equal("GET"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -3337,7 +4112,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetDeploymentBackups(nil)
@@ -3356,30 +4130,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetDeploymentBackupsWithContext(ctx, getDeploymentBackupsOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetDeploymentBackups(getDeploymentBackupsOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetDeploymentBackupsWithContext(ctx, getDeploymentBackupsOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetDeploymentBackups with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -3462,10 +4212,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`StartOndemandBackup(startOndemandBackupOptions *StartOndemandBackupOptions)`, func() {
 		startOndemandBackupPath := "/deployments/testString/backups"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -3474,7 +4222,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("POST"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke StartOndemandBackup successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the StartOndemandBackupOptions model
+				startOndemandBackupOptionsModel := new(ibmclouddatabasesv5.StartOndemandBackupOptions)
+				startOndemandBackupOptionsModel.ID = core.StringPtr("testString")
+				startOndemandBackupOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.StartOndemandBackupWithContext(ctx, startOndemandBackupOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.StartOndemandBackup(startOndemandBackupOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.StartOndemandBackupWithContext(ctx, startOndemandBackupOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(startOndemandBackupPath))
+					Expect(req.Method).To(Equal("POST"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -3489,7 +4291,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.StartOndemandBackup(nil)
@@ -3508,30 +4309,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.StartOndemandBackupWithContext(ctx, startOndemandBackupOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.StartOndemandBackup(startOndemandBackupOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.StartOndemandBackupWithContext(ctx, startOndemandBackupOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke StartOndemandBackup with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -3614,10 +4391,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetPITRdata(getPITRdataOptions *GetPITRdataOptions)`, func() {
 		getPitRdataPath := "/deployments/testString/point_in_time_recovery_data"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -3626,7 +4401,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"earliest_point_in_time_recovery_time": "EarliestPointInTimeRecoveryTime"}`)
+				}))
+			})
+			It(`Invoke GetPITRdata successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetPITRdataOptions model
+				getPitRdataOptionsModel := new(ibmclouddatabasesv5.GetPITRdataOptions)
+				getPitRdataOptionsModel.ID = core.StringPtr("testString")
+				getPitRdataOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetPITRdataWithContext(ctx, getPitRdataOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetPITRdata(getPitRdataOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetPITRdataWithContext(ctx, getPitRdataOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getPitRdataPath))
+					Expect(req.Method).To(Equal("GET"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -3641,7 +4470,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetPITRdata(nil)
@@ -3660,30 +4488,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetPITRdataWithContext(ctx, getPitRdataOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetPITRdata(getPitRdataOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetPITRdataWithContext(ctx, getPitRdataOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetPITRdata with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -3760,6 +4564,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
 				Expect(serviceErr).To(BeNil())
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url from constructor successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -3770,6 +4580,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url programatically successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -3781,6 +4597,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 		})
 		Context(`Using external config, construct service client instances with error: Invalid Auth`, func() {
@@ -3816,6 +4638,16 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).ToNot(BeNil())
 				ClearTestEnvironment(testEnvironment)
 			})
+		})
+	})
+	Describe(`Regional endpoint tests`, func() {
+		It(`GetServiceURLForRegion(region string)`, func() {
+			var url string
+			var err error
+			url, err = ibmclouddatabasesv5.GetServiceURLForRegion("INVALID_REGION")
+			Expect(url).To(BeEmpty())
+			Expect(err).ToNot(BeNil())
+			fmt.Fprintf(GinkgoWriter, "Expected error: %s\n", err.Error())
 		})
 	})
 	Describe(`GetConnection(getConnectionOptions *GetConnectionOptions) - Operation response error`, func() {
@@ -3872,10 +4704,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetConnection(getConnectionOptions *GetConnectionOptions)`, func() {
 		getConnectionPath := "/deployments/testString/users/testString/testString/connections/public"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -3886,7 +4716,67 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.URL.Query()["certificate_root"]).To(Equal([]string{"testString"}))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"connection": {"postgres": {"type": "uri", "composed": ["Composed"], "scheme": "Scheme", "hosts": [{"hostname": "Hostname", "port": 4}], "path": "/ibmclouddb", "query_options": {"anyKey": "anyValue"}, "authentication": {"method": "Method", "username": "Username", "password": "Password"}, "certificate": {"name": "Name", "certificate_base64": "CertificateBase64"}, "database": "Database"}, "cli": {"type": "cli", "composed": ["Composed"], "environment": {"mapKey": "Inner"}, "bin": "Bin", "arguments": [["Arguments"]], "certificate": {"name": "Name", "certificate_base64": "CertificateBase64"}}}}`)
+				}))
+			})
+			It(`Invoke GetConnection successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetConnectionOptions model
+				getConnectionOptionsModel := new(ibmclouddatabasesv5.GetConnectionOptions)
+				getConnectionOptionsModel.ID = core.StringPtr("testString")
+				getConnectionOptionsModel.UserType = core.StringPtr("testString")
+				getConnectionOptionsModel.UserID = core.StringPtr("testString")
+				getConnectionOptionsModel.EndpointType = core.StringPtr("public")
+				getConnectionOptionsModel.CertificateRoot = core.StringPtr("testString")
+				getConnectionOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetConnectionWithContext(ctx, getConnectionOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetConnection(getConnectionOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetConnectionWithContext(ctx, getConnectionOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getConnectionPath))
+					Expect(req.Method).To(Equal("GET"))
+
+					Expect(req.URL.Query()["certificate_root"]).To(Equal([]string{"testString"}))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -3901,7 +4791,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetConnection(nil)
@@ -3924,30 +4813,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetConnectionWithContext(ctx, getConnectionOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetConnection(getConnectionOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetConnectionWithContext(ctx, getConnectionOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetConnection with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -4039,10 +4904,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`CompleteConnection(completeConnectionOptions *CompleteConnectionOptions)`, func() {
 		completeConnectionPath := "/deployments/testString/users/testString/testString/connections/public"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -4067,7 +4930,82 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"connection": {"postgres": {"type": "uri", "composed": ["Composed"], "scheme": "Scheme", "hosts": [{"hostname": "Hostname", "port": 4}], "path": "/ibmclouddb", "query_options": {"anyKey": "anyValue"}, "authentication": {"method": "Method", "username": "Username", "password": "Password"}, "certificate": {"name": "Name", "certificate_base64": "CertificateBase64"}, "database": "Database"}, "cli": {"type": "cli", "composed": ["Composed"], "environment": {"mapKey": "Inner"}, "bin": "Bin", "arguments": [["Arguments"]], "certificate": {"name": "Name", "certificate_base64": "CertificateBase64"}}}}`)
+				}))
+			})
+			It(`Invoke CompleteConnection successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the CompleteConnectionOptions model
+				completeConnectionOptionsModel := new(ibmclouddatabasesv5.CompleteConnectionOptions)
+				completeConnectionOptionsModel.ID = core.StringPtr("testString")
+				completeConnectionOptionsModel.UserType = core.StringPtr("testString")
+				completeConnectionOptionsModel.UserID = core.StringPtr("testString")
+				completeConnectionOptionsModel.EndpointType = core.StringPtr("public")
+				completeConnectionOptionsModel.Password = core.StringPtr("testString")
+				completeConnectionOptionsModel.CertificateRoot = core.StringPtr("testString")
+				completeConnectionOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.CompleteConnectionWithContext(ctx, completeConnectionOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.CompleteConnection(completeConnectionOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.CompleteConnectionWithContext(ctx, completeConnectionOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(completeConnectionPath))
+					Expect(req.Method).To(Equal("POST"))
+
+					// For gzip-disabled operation, verify Content-Encoding is not set.
+					Expect(req.Header.Get("Content-Encoding")).To(BeEmpty())
+
+					// If there is a body, then make sure we can read it
+					bodyBuf := new(bytes.Buffer)
+					if req.Header.Get("Content-Encoding") == "gzip" {
+						body, err := core.NewGzipDecompressionReader(req.Body)
+						Expect(err).To(BeNil())
+						_, err = bodyBuf.ReadFrom(body)
+						Expect(err).To(BeNil())
+					} else {
+						_, err := bodyBuf.ReadFrom(req.Body)
+						Expect(err).To(BeNil())
+					}
+					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -4082,7 +5020,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.CompleteConnection(nil)
@@ -4106,30 +5043,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.CompleteConnectionWithContext(ctx, completeConnectionOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.CompleteConnection(completeConnectionOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.CompleteConnectionWithContext(ctx, completeConnectionOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke CompleteConnection with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -4222,10 +5135,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetConnectionDeprecated(getConnectionDeprecatedOptions *GetConnectionDeprecatedOptions)`, func() {
 		getConnectionDeprecatedPath := "/deployments/testString/users/testString/testString/connections"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -4236,7 +5147,66 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.URL.Query()["certificate_root"]).To(Equal([]string{"testString"}))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"connection": {"postgres": {"type": "uri", "composed": ["Composed"], "scheme": "Scheme", "hosts": [{"hostname": "Hostname", "port": 4}], "path": "/ibmclouddb", "query_options": {"anyKey": "anyValue"}, "authentication": {"method": "Method", "username": "Username", "password": "Password"}, "certificate": {"name": "Name", "certificate_base64": "CertificateBase64"}, "database": "Database"}, "cli": {"type": "cli", "composed": ["Composed"], "environment": {"mapKey": "Inner"}, "bin": "Bin", "arguments": [["Arguments"]], "certificate": {"name": "Name", "certificate_base64": "CertificateBase64"}}}}`)
+				}))
+			})
+			It(`Invoke GetConnectionDeprecated successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetConnectionDeprecatedOptions model
+				getConnectionDeprecatedOptionsModel := new(ibmclouddatabasesv5.GetConnectionDeprecatedOptions)
+				getConnectionDeprecatedOptionsModel.ID = core.StringPtr("testString")
+				getConnectionDeprecatedOptionsModel.UserType = core.StringPtr("testString")
+				getConnectionDeprecatedOptionsModel.UserID = core.StringPtr("testString")
+				getConnectionDeprecatedOptionsModel.CertificateRoot = core.StringPtr("testString")
+				getConnectionDeprecatedOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetConnectionDeprecatedWithContext(ctx, getConnectionDeprecatedOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetConnectionDeprecated(getConnectionDeprecatedOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetConnectionDeprecatedWithContext(ctx, getConnectionDeprecatedOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getConnectionDeprecatedPath))
+					Expect(req.Method).To(Equal("GET"))
+
+					Expect(req.URL.Query()["certificate_root"]).To(Equal([]string{"testString"}))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -4251,7 +5221,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetConnectionDeprecated(nil)
@@ -4273,30 +5242,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetConnectionDeprecatedWithContext(ctx, getConnectionDeprecatedOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetConnectionDeprecated(getConnectionDeprecatedOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetConnectionDeprecatedWithContext(ctx, getConnectionDeprecatedOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetConnectionDeprecated with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -4386,10 +5331,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`CompleteConnectionDeprecated(completeConnectionDeprecatedOptions *CompleteConnectionDeprecatedOptions)`, func() {
 		completeConnectionDeprecatedPath := "/deployments/testString/users/testString/testString/connections"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -4414,7 +5357,81 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"connection": {"postgres": {"type": "uri", "composed": ["Composed"], "scheme": "Scheme", "hosts": [{"hostname": "Hostname", "port": 4}], "path": "/ibmclouddb", "query_options": {"anyKey": "anyValue"}, "authentication": {"method": "Method", "username": "Username", "password": "Password"}, "certificate": {"name": "Name", "certificate_base64": "CertificateBase64"}, "database": "Database"}, "cli": {"type": "cli", "composed": ["Composed"], "environment": {"mapKey": "Inner"}, "bin": "Bin", "arguments": [["Arguments"]], "certificate": {"name": "Name", "certificate_base64": "CertificateBase64"}}}}`)
+				}))
+			})
+			It(`Invoke CompleteConnectionDeprecated successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the CompleteConnectionDeprecatedOptions model
+				completeConnectionDeprecatedOptionsModel := new(ibmclouddatabasesv5.CompleteConnectionDeprecatedOptions)
+				completeConnectionDeprecatedOptionsModel.ID = core.StringPtr("testString")
+				completeConnectionDeprecatedOptionsModel.UserType = core.StringPtr("testString")
+				completeConnectionDeprecatedOptionsModel.UserID = core.StringPtr("testString")
+				completeConnectionDeprecatedOptionsModel.Password = core.StringPtr("testString")
+				completeConnectionDeprecatedOptionsModel.CertificateRoot = core.StringPtr("testString")
+				completeConnectionDeprecatedOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.CompleteConnectionDeprecatedWithContext(ctx, completeConnectionDeprecatedOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.CompleteConnectionDeprecated(completeConnectionDeprecatedOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.CompleteConnectionDeprecatedWithContext(ctx, completeConnectionDeprecatedOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(completeConnectionDeprecatedPath))
+					Expect(req.Method).To(Equal("POST"))
+
+					// For gzip-disabled operation, verify Content-Encoding is not set.
+					Expect(req.Header.Get("Content-Encoding")).To(BeEmpty())
+
+					// If there is a body, then make sure we can read it
+					bodyBuf := new(bytes.Buffer)
+					if req.Header.Get("Content-Encoding") == "gzip" {
+						body, err := core.NewGzipDecompressionReader(req.Body)
+						Expect(err).To(BeNil())
+						_, err = bodyBuf.ReadFrom(body)
+						Expect(err).To(BeNil())
+					} else {
+						_, err := bodyBuf.ReadFrom(req.Body)
+						Expect(err).To(BeNil())
+					}
+					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -4429,7 +5446,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.CompleteConnectionDeprecated(nil)
@@ -4452,30 +5468,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.CompleteConnectionDeprecatedWithContext(ctx, completeConnectionDeprecatedOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.CompleteConnectionDeprecated(completeConnectionDeprecatedOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.CompleteConnectionDeprecatedWithContext(ctx, completeConnectionDeprecatedOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke CompleteConnectionDeprecated with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -4556,6 +5548,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
 				Expect(serviceErr).To(BeNil())
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url from constructor successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -4566,6 +5564,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url programatically successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -4577,6 +5581,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 		})
 		Context(`Using external config, construct service client instances with error: Invalid Auth`, func() {
@@ -4612,6 +5622,16 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).ToNot(BeNil())
 				ClearTestEnvironment(testEnvironment)
 			})
+		})
+	})
+	Describe(`Regional endpoint tests`, func() {
+		It(`GetServiceURLForRegion(region string)`, func() {
+			var url string
+			var err error
+			url, err = ibmclouddatabasesv5.GetServiceURLForRegion("INVALID_REGION")
+			Expect(url).To(BeEmpty())
+			Expect(err).ToNot(BeNil())
+			fmt.Fprintf(GinkgoWriter, "Expected error: %s\n", err.Error())
 		})
 	})
 	Describe(`GetDeploymentScalingGroups(getDeploymentScalingGroupsOptions *GetDeploymentScalingGroupsOptions) - Operation response error`, func() {
@@ -4662,10 +5682,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetDeploymentScalingGroups(getDeploymentScalingGroupsOptions *GetDeploymentScalingGroupsOptions)`, func() {
 		getDeploymentScalingGroupsPath := "/deployments/testString/groups"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -4674,7 +5692,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"groups": [{"id": "member", "count": 2, "members": {"units": "count", "allocation_count": 2, "minimum_count": 2, "maximum_count": 20, "step_size_count": 1, "is_adjustable": true, "is_optional": false, "can_scale_down": false}, "memory": {"units": "mb", "allocation_mb": 12288, "minimum_mb": 1024, "maximum_mb": 114688, "step_size_mb": 1024, "is_adjustable": true, "is_optional": false, "can_scale_down": true}, "cpu": {"units": "2", "allocation_count": 2, "minimum_count": 2, "maximum_count": 32, "step_size_count": 2, "is_adjustable": false, "is_optional": false, "can_scale_down": true}, "disk": {"units": "mb", "allocation_mb": 10240, "minimum_mb": 2048, "maximum_mb": 4194304, "step_size_mb": 2048, "is_adjustable": true, "is_optional": false, "can_scale_down": false}}]}`)
+				}))
+			})
+			It(`Invoke GetDeploymentScalingGroups successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetDeploymentScalingGroupsOptions model
+				getDeploymentScalingGroupsOptionsModel := new(ibmclouddatabasesv5.GetDeploymentScalingGroupsOptions)
+				getDeploymentScalingGroupsOptionsModel.ID = core.StringPtr("testString")
+				getDeploymentScalingGroupsOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetDeploymentScalingGroupsWithContext(ctx, getDeploymentScalingGroupsOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetDeploymentScalingGroups(getDeploymentScalingGroupsOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetDeploymentScalingGroupsWithContext(ctx, getDeploymentScalingGroupsOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getDeploymentScalingGroupsPath))
+					Expect(req.Method).To(Equal("GET"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -4689,7 +5761,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetDeploymentScalingGroups(nil)
@@ -4708,30 +5779,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetDeploymentScalingGroupsWithContext(ctx, getDeploymentScalingGroupsOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetDeploymentScalingGroups(getDeploymentScalingGroupsOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetDeploymentScalingGroupsWithContext(ctx, getDeploymentScalingGroupsOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetDeploymentScalingGroups with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -4814,10 +5861,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetDefaultScalingGroups(getDefaultScalingGroupsOptions *GetDefaultScalingGroupsOptions)`, func() {
 		getDefaultScalingGroupsPath := "/deployables/postgresql/groups"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -4826,7 +5871,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"groups": [{"id": "member", "count": 2, "members": {"units": "count", "allocation_count": 2, "minimum_count": 2, "maximum_count": 20, "step_size_count": 1, "is_adjustable": true, "is_optional": false, "can_scale_down": false}, "memory": {"units": "mb", "allocation_mb": 12288, "minimum_mb": 1024, "maximum_mb": 114688, "step_size_mb": 1024, "is_adjustable": true, "is_optional": false, "can_scale_down": true}, "cpu": {"units": "2", "allocation_count": 2, "minimum_count": 2, "maximum_count": 32, "step_size_count": 2, "is_adjustable": false, "is_optional": false, "can_scale_down": true}, "disk": {"units": "mb", "allocation_mb": 10240, "minimum_mb": 2048, "maximum_mb": 4194304, "step_size_mb": 2048, "is_adjustable": true, "is_optional": false, "can_scale_down": false}}]}`)
+				}))
+			})
+			It(`Invoke GetDefaultScalingGroups successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetDefaultScalingGroupsOptions model
+				getDefaultScalingGroupsOptionsModel := new(ibmclouddatabasesv5.GetDefaultScalingGroupsOptions)
+				getDefaultScalingGroupsOptionsModel.Type = core.StringPtr("postgresql")
+				getDefaultScalingGroupsOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetDefaultScalingGroupsWithContext(ctx, getDefaultScalingGroupsOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetDefaultScalingGroups(getDefaultScalingGroupsOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetDefaultScalingGroupsWithContext(ctx, getDefaultScalingGroupsOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getDefaultScalingGroupsPath))
+					Expect(req.Method).To(Equal("GET"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -4841,7 +5940,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetDefaultScalingGroups(nil)
@@ -4860,30 +5958,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetDefaultScalingGroupsWithContext(ctx, getDefaultScalingGroupsOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetDefaultScalingGroups(getDefaultScalingGroupsOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetDefaultScalingGroupsWithContext(ctx, getDefaultScalingGroupsOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetDefaultScalingGroups with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -4976,10 +6050,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`SetDeploymentScalingGroup(setDeploymentScalingGroupOptions *SetDeploymentScalingGroupOptions)`, func() {
 		setDeploymentScalingGroupPath := "/deployments/testString/groups/testString"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -5004,7 +6076,87 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(202)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke SetDeploymentScalingGroup successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the SetMembersGroupMembers model
+				setMembersGroupMembersModel := new(ibmclouddatabasesv5.SetMembersGroupMembers)
+				setMembersGroupMembersModel.AllocationCount = core.Int64Ptr(int64(4))
+
+				// Construct an instance of the SetDeploymentScalingGroupRequestSetMembersGroup model
+				setDeploymentScalingGroupRequestModel := new(ibmclouddatabasesv5.SetDeploymentScalingGroupRequestSetMembersGroup)
+				setDeploymentScalingGroupRequestModel.Members = setMembersGroupMembersModel
+
+				// Construct an instance of the SetDeploymentScalingGroupOptions model
+				setDeploymentScalingGroupOptionsModel := new(ibmclouddatabasesv5.SetDeploymentScalingGroupOptions)
+				setDeploymentScalingGroupOptionsModel.ID = core.StringPtr("testString")
+				setDeploymentScalingGroupOptionsModel.GroupID = core.StringPtr("testString")
+				setDeploymentScalingGroupOptionsModel.SetDeploymentScalingGroupRequest = setDeploymentScalingGroupRequestModel
+				setDeploymentScalingGroupOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.SetDeploymentScalingGroupWithContext(ctx, setDeploymentScalingGroupOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.SetDeploymentScalingGroup(setDeploymentScalingGroupOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.SetDeploymentScalingGroupWithContext(ctx, setDeploymentScalingGroupOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(setDeploymentScalingGroupPath))
+					Expect(req.Method).To(Equal("PATCH"))
+
+					// For gzip-disabled operation, verify Content-Encoding is not set.
+					Expect(req.Header.Get("Content-Encoding")).To(BeEmpty())
+
+					// If there is a body, then make sure we can read it
+					bodyBuf := new(bytes.Buffer)
+					if req.Header.Get("Content-Encoding") == "gzip" {
+						body, err := core.NewGzipDecompressionReader(req.Body)
+						Expect(err).To(BeNil())
+						_, err = bodyBuf.ReadFrom(body)
+						Expect(err).To(BeNil())
+					} else {
+						_, err := bodyBuf.ReadFrom(req.Body)
+						Expect(err).To(BeNil())
+					}
+					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -5019,7 +6171,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.SetDeploymentScalingGroup(nil)
@@ -5048,30 +6199,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.SetDeploymentScalingGroupWithContext(ctx, setDeploymentScalingGroupOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.SetDeploymentScalingGroup(setDeploymentScalingGroupOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.SetDeploymentScalingGroupWithContext(ctx, setDeploymentScalingGroupOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke SetDeploymentScalingGroup with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -5158,6 +6285,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
 				Expect(serviceErr).To(BeNil())
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url from constructor successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -5168,6 +6301,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url programatically successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -5179,6 +6318,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 		})
 		Context(`Using external config, construct service client instances with error: Invalid Auth`, func() {
@@ -5214,6 +6359,16 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).ToNot(BeNil())
 				ClearTestEnvironment(testEnvironment)
 			})
+		})
+	})
+	Describe(`Regional endpoint tests`, func() {
+		It(`GetServiceURLForRegion(region string)`, func() {
+			var url string
+			var err error
+			url, err = ibmclouddatabasesv5.GetServiceURLForRegion("INVALID_REGION")
+			Expect(url).To(BeEmpty())
+			Expect(err).ToNot(BeNil())
+			fmt.Fprintf(GinkgoWriter, "Expected error: %s\n", err.Error())
 		})
 	})
 	Describe(`GetAutoscalingConditions(getAutoscalingConditionsOptions *GetAutoscalingConditionsOptions) - Operation response error`, func() {
@@ -5265,10 +6420,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetAutoscalingConditions(getAutoscalingConditionsOptions *GetAutoscalingConditionsOptions)`, func() {
 		getAutoscalingConditionsPath := "/deployments/testString/groups/testString/autoscaling"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -5277,12 +6430,67 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
 					res.WriteHeader(200)
-					fmt.Fprintf(res, "%s", `{"autoscaling": {"autoscaling": {"disk": {"scalers": {"capacity": {"enabled": true, "free_space_remaining_percent": 10}, "io_utilization": {"enabled": true, "over_period": "30m", "above_percent": 45}}, "rate": {"increase_percent": 20, "period_seconds": 900, "limit_mb_per_member": 3670016, "units": "mb"}}, "memory": {"scalers": {"io_utilization": {"enabled": true, "over_period": "30m", "above_percent": 45}}, "rate": {"increase_percent": 10, "period_seconds": 900, "limit_mb_per_member": 3670016, "units": "mb"}}, "cpu": {}}}}`)
+					fmt.Fprintf(res, "%s", `{"autoscaling": {"disk": {"scalers": {"capacity": {"enabled": true, "free_space_remaining_percent": 10}, "io_utilization": {"enabled": true, "over_period": "30m", "above_percent": 45}}, "rate": {"increase_percent": 20, "period_seconds": 900, "limit_mb_per_member": 3670016, "units": "mb"}}, "memory": {"scalers": {"io_utilization": {"enabled": true, "over_period": "30m", "above_percent": 45}}, "rate": {"increase_percent": 10, "period_seconds": 900, "limit_mb_per_member": 3670016, "units": "mb"}}, "cpu": {}}}`)
+				}))
+			})
+			It(`Invoke GetAutoscalingConditions successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetAutoscalingConditionsOptions model
+				getAutoscalingConditionsOptionsModel := new(ibmclouddatabasesv5.GetAutoscalingConditionsOptions)
+				getAutoscalingConditionsOptionsModel.ID = core.StringPtr("testString")
+				getAutoscalingConditionsOptionsModel.GroupID = core.StringPtr("testString")
+				getAutoscalingConditionsOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetAutoscalingConditionsWithContext(ctx, getAutoscalingConditionsOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetAutoscalingConditions(getAutoscalingConditionsOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetAutoscalingConditionsWithContext(ctx, getAutoscalingConditionsOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getAutoscalingConditionsPath))
+					Expect(req.Method).To(Equal("GET"))
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"autoscaling": {"disk": {"scalers": {"capacity": {"enabled": true, "free_space_remaining_percent": 10}, "io_utilization": {"enabled": true, "over_period": "30m", "above_percent": 45}}, "rate": {"increase_percent": 20, "period_seconds": 900, "limit_mb_per_member": 3670016, "units": "mb"}}, "memory": {"scalers": {"io_utilization": {"enabled": true, "over_period": "30m", "above_percent": 45}}, "rate": {"increase_percent": 10, "period_seconds": 900, "limit_mb_per_member": 3670016, "units": "mb"}}, "cpu": {}}}`)
 				}))
 			})
 			It(`Invoke GetAutoscalingConditions successfully`, func() {
@@ -5292,7 +6500,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetAutoscalingConditions(nil)
@@ -5312,30 +6519,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetAutoscalingConditionsWithContext(ctx, getAutoscalingConditionsOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetAutoscalingConditions(getAutoscalingConditionsOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetAutoscalingConditionsWithContext(ctx, getAutoscalingConditionsOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetAutoscalingConditions with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -5422,13 +6605,9 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				autoscalingDiskGroupDiskModel.Scalers = autoscalingDiskGroupDiskScalersModel
 				autoscalingDiskGroupDiskModel.Rate = autoscalingDiskGroupDiskRateModel
 
-				// Construct an instance of the AutoscalingSetGroupAutoscalingAutoscalingDiskGroup model
-				autoscalingSetGroupAutoscalingModel := new(ibmclouddatabasesv5.AutoscalingSetGroupAutoscalingAutoscalingDiskGroup)
-				autoscalingSetGroupAutoscalingModel.Disk = autoscalingDiskGroupDiskModel
-
-				// Construct an instance of the AutoscalingSetGroup model
-				autoscalingSetGroupModel := new(ibmclouddatabasesv5.AutoscalingSetGroup)
-				autoscalingSetGroupModel.Autoscaling = autoscalingSetGroupAutoscalingModel
+				// Construct an instance of the AutoscalingSetGroupAutoscalingDiskGroup model
+				autoscalingSetGroupModel := new(ibmclouddatabasesv5.AutoscalingSetGroupAutoscalingDiskGroup)
+				autoscalingSetGroupModel.Disk = autoscalingDiskGroupDiskModel
 
 				// Construct an instance of the SetAutoscalingConditionsOptions model
 				setAutoscalingConditionsOptionsModel := new(ibmclouddatabasesv5.SetAutoscalingConditionsOptions)
@@ -5457,10 +6636,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`SetAutoscalingConditions(setAutoscalingConditionsOptions *SetAutoscalingConditionsOptions)`, func() {
 		setAutoscalingConditionsPath := "/deployments/testString/groups/testString/autoscaling"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -5485,7 +6662,111 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke SetAutoscalingConditions successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the AutoscalingDiskGroupDiskScalersCapacity model
+				autoscalingDiskGroupDiskScalersCapacityModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDiskScalersCapacity)
+				autoscalingDiskGroupDiskScalersCapacityModel.Enabled = core.BoolPtr(true)
+				autoscalingDiskGroupDiskScalersCapacityModel.FreeSpaceRemainingPercent = core.Int64Ptr(int64(10))
+
+				// Construct an instance of the AutoscalingDiskGroupDiskScalersIoUtilization model
+				autoscalingDiskGroupDiskScalersIoUtilizationModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDiskScalersIoUtilization)
+				autoscalingDiskGroupDiskScalersIoUtilizationModel.Enabled = core.BoolPtr(true)
+				autoscalingDiskGroupDiskScalersIoUtilizationModel.OverPeriod = core.StringPtr("30m")
+				autoscalingDiskGroupDiskScalersIoUtilizationModel.AbovePercent = core.Int64Ptr(int64(45))
+
+				// Construct an instance of the AutoscalingDiskGroupDiskScalers model
+				autoscalingDiskGroupDiskScalersModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDiskScalers)
+				autoscalingDiskGroupDiskScalersModel.Capacity = autoscalingDiskGroupDiskScalersCapacityModel
+				autoscalingDiskGroupDiskScalersModel.IoUtilization = autoscalingDiskGroupDiskScalersIoUtilizationModel
+
+				// Construct an instance of the AutoscalingDiskGroupDiskRate model
+				autoscalingDiskGroupDiskRateModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDiskRate)
+				autoscalingDiskGroupDiskRateModel.IncreasePercent = core.Float64Ptr(float64(20))
+				autoscalingDiskGroupDiskRateModel.PeriodSeconds = core.Int64Ptr(int64(900))
+				autoscalingDiskGroupDiskRateModel.LimitMbPerMember = core.Float64Ptr(float64(3670016))
+				autoscalingDiskGroupDiskRateModel.Units = core.StringPtr("mb")
+
+				// Construct an instance of the AutoscalingDiskGroupDisk model
+				autoscalingDiskGroupDiskModel := new(ibmclouddatabasesv5.AutoscalingDiskGroupDisk)
+				autoscalingDiskGroupDiskModel.Scalers = autoscalingDiskGroupDiskScalersModel
+				autoscalingDiskGroupDiskModel.Rate = autoscalingDiskGroupDiskRateModel
+
+				// Construct an instance of the AutoscalingSetGroupAutoscalingDiskGroup model
+				autoscalingSetGroupModel := new(ibmclouddatabasesv5.AutoscalingSetGroupAutoscalingDiskGroup)
+				autoscalingSetGroupModel.Disk = autoscalingDiskGroupDiskModel
+
+				// Construct an instance of the SetAutoscalingConditionsOptions model
+				setAutoscalingConditionsOptionsModel := new(ibmclouddatabasesv5.SetAutoscalingConditionsOptions)
+				setAutoscalingConditionsOptionsModel.ID = core.StringPtr("testString")
+				setAutoscalingConditionsOptionsModel.GroupID = core.StringPtr("testString")
+				setAutoscalingConditionsOptionsModel.Autoscaling = autoscalingSetGroupModel
+				setAutoscalingConditionsOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.SetAutoscalingConditionsWithContext(ctx, setAutoscalingConditionsOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.SetAutoscalingConditions(setAutoscalingConditionsOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.SetAutoscalingConditionsWithContext(ctx, setAutoscalingConditionsOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(setAutoscalingConditionsPath))
+					Expect(req.Method).To(Equal("PATCH"))
+
+					// For gzip-disabled operation, verify Content-Encoding is not set.
+					Expect(req.Header.Get("Content-Encoding")).To(BeEmpty())
+
+					// If there is a body, then make sure we can read it
+					bodyBuf := new(bytes.Buffer)
+					if req.Header.Get("Content-Encoding") == "gzip" {
+						body, err := core.NewGzipDecompressionReader(req.Body)
+						Expect(err).To(BeNil())
+						_, err = bodyBuf.ReadFrom(body)
+						Expect(err).To(BeNil())
+					} else {
+						_, err := bodyBuf.ReadFrom(req.Body)
+						Expect(err).To(BeNil())
+					}
+					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -5500,7 +6781,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.SetAutoscalingConditions(nil)
@@ -5536,13 +6816,9 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				autoscalingDiskGroupDiskModel.Scalers = autoscalingDiskGroupDiskScalersModel
 				autoscalingDiskGroupDiskModel.Rate = autoscalingDiskGroupDiskRateModel
 
-				// Construct an instance of the AutoscalingSetGroupAutoscalingAutoscalingDiskGroup model
-				autoscalingSetGroupAutoscalingModel := new(ibmclouddatabasesv5.AutoscalingSetGroupAutoscalingAutoscalingDiskGroup)
-				autoscalingSetGroupAutoscalingModel.Disk = autoscalingDiskGroupDiskModel
-
-				// Construct an instance of the AutoscalingSetGroup model
-				autoscalingSetGroupModel := new(ibmclouddatabasesv5.AutoscalingSetGroup)
-				autoscalingSetGroupModel.Autoscaling = autoscalingSetGroupAutoscalingModel
+				// Construct an instance of the AutoscalingSetGroupAutoscalingDiskGroup model
+				autoscalingSetGroupModel := new(ibmclouddatabasesv5.AutoscalingSetGroupAutoscalingDiskGroup)
+				autoscalingSetGroupModel.Disk = autoscalingDiskGroupDiskModel
 
 				// Construct an instance of the SetAutoscalingConditionsOptions model
 				setAutoscalingConditionsOptionsModel := new(ibmclouddatabasesv5.SetAutoscalingConditionsOptions)
@@ -5557,30 +6833,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.SetAutoscalingConditionsWithContext(ctx, setAutoscalingConditionsOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.SetAutoscalingConditions(setAutoscalingConditionsOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.SetAutoscalingConditionsWithContext(ctx, setAutoscalingConditionsOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke SetAutoscalingConditions with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -5618,13 +6870,9 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				autoscalingDiskGroupDiskModel.Scalers = autoscalingDiskGroupDiskScalersModel
 				autoscalingDiskGroupDiskModel.Rate = autoscalingDiskGroupDiskRateModel
 
-				// Construct an instance of the AutoscalingSetGroupAutoscalingAutoscalingDiskGroup model
-				autoscalingSetGroupAutoscalingModel := new(ibmclouddatabasesv5.AutoscalingSetGroupAutoscalingAutoscalingDiskGroup)
-				autoscalingSetGroupAutoscalingModel.Disk = autoscalingDiskGroupDiskModel
-
-				// Construct an instance of the AutoscalingSetGroup model
-				autoscalingSetGroupModel := new(ibmclouddatabasesv5.AutoscalingSetGroup)
-				autoscalingSetGroupModel.Autoscaling = autoscalingSetGroupAutoscalingModel
+				// Construct an instance of the AutoscalingSetGroupAutoscalingDiskGroup model
+				autoscalingSetGroupModel := new(ibmclouddatabasesv5.AutoscalingSetGroupAutoscalingDiskGroup)
+				autoscalingSetGroupModel.Disk = autoscalingDiskGroupDiskModel
 
 				// Construct an instance of the SetAutoscalingConditionsOptions model
 				setAutoscalingConditionsOptionsModel := new(ibmclouddatabasesv5.SetAutoscalingConditionsOptions)
@@ -5695,6 +6943,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
 				Expect(serviceErr).To(BeNil())
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url from constructor successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -5705,6 +6959,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url programatically successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -5716,6 +6976,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 		})
 		Context(`Using external config, construct service client instances with error: Invalid Auth`, func() {
@@ -5751,6 +7017,16 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).ToNot(BeNil())
 				ClearTestEnvironment(testEnvironment)
 			})
+		})
+	})
+	Describe(`Regional endpoint tests`, func() {
+		It(`GetServiceURLForRegion(region string)`, func() {
+			var url string
+			var err error
+			url, err = ibmclouddatabasesv5.GetServiceURLForRegion("INVALID_REGION")
+			Expect(url).To(BeEmpty())
+			Expect(err).ToNot(BeNil())
+			fmt.Fprintf(GinkgoWriter, "Expected error: %s\n", err.Error())
 		})
 	})
 	Describe(`KillConnections(killConnectionsOptions *KillConnectionsOptions) - Operation response error`, func() {
@@ -5801,10 +7077,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`KillConnections(killConnectionsOptions *KillConnectionsOptions)`, func() {
 		killConnectionsPath := "/deployments/testString/management/database_connections"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -5813,7 +7087,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("DELETE"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke KillConnections successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the KillConnectionsOptions model
+				killConnectionsOptionsModel := new(ibmclouddatabasesv5.KillConnectionsOptions)
+				killConnectionsOptionsModel.ID = core.StringPtr("testString")
+				killConnectionsOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.KillConnectionsWithContext(ctx, killConnectionsOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.KillConnections(killConnectionsOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.KillConnectionsWithContext(ctx, killConnectionsOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(killConnectionsPath))
+					Expect(req.Method).To(Equal("DELETE"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -5828,7 +7156,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.KillConnections(nil)
@@ -5847,30 +7174,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.KillConnectionsWithContext(ctx, killConnectionsOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.KillConnections(killConnectionsOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.KillConnectionsWithContext(ctx, killConnectionsOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke KillConnections with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -5953,10 +7256,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`FileSync(fileSyncOptions *FileSyncOptions)`, func() {
 		fileSyncPath := "/deployments/testString/elasticsearch/file_syncs"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -5965,7 +7266,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("POST"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke FileSync successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the FileSyncOptions model
+				fileSyncOptionsModel := new(ibmclouddatabasesv5.FileSyncOptions)
+				fileSyncOptionsModel.ID = core.StringPtr("testString")
+				fileSyncOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.FileSyncWithContext(ctx, fileSyncOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.FileSync(fileSyncOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.FileSyncWithContext(ctx, fileSyncOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(fileSyncPath))
+					Expect(req.Method).To(Equal("POST"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -5980,7 +7335,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.FileSync(nil)
@@ -5999,30 +7353,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.FileSyncWithContext(ctx, fileSyncOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.FileSync(fileSyncOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.FileSyncWithContext(ctx, fileSyncOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke FileSync with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -6112,10 +7442,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`CreateLogicalReplicationSlot(createLogicalReplicationSlotOptions *CreateLogicalReplicationSlotOptions)`, func() {
 		createLogicalReplicationSlotPath := "/deployments/testString/postgresql/logical_replication_slots"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -6140,7 +7468,84 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke CreateLogicalReplicationSlot successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the LogicalReplicationSlotLogicalReplicationSlot model
+				logicalReplicationSlotLogicalReplicationSlotModel := new(ibmclouddatabasesv5.LogicalReplicationSlotLogicalReplicationSlot)
+				logicalReplicationSlotLogicalReplicationSlotModel.Name = core.StringPtr("customer_replication")
+				logicalReplicationSlotLogicalReplicationSlotModel.DatabaseName = core.StringPtr("customers")
+				logicalReplicationSlotLogicalReplicationSlotModel.PluginType = core.StringPtr("wal2json")
+
+				// Construct an instance of the CreateLogicalReplicationSlotOptions model
+				createLogicalReplicationSlotOptionsModel := new(ibmclouddatabasesv5.CreateLogicalReplicationSlotOptions)
+				createLogicalReplicationSlotOptionsModel.ID = core.StringPtr("testString")
+				createLogicalReplicationSlotOptionsModel.LogicalReplicationSlot = logicalReplicationSlotLogicalReplicationSlotModel
+				createLogicalReplicationSlotOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.CreateLogicalReplicationSlotWithContext(ctx, createLogicalReplicationSlotOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.CreateLogicalReplicationSlot(createLogicalReplicationSlotOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.CreateLogicalReplicationSlotWithContext(ctx, createLogicalReplicationSlotOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(createLogicalReplicationSlotPath))
+					Expect(req.Method).To(Equal("POST"))
+
+					// For gzip-disabled operation, verify Content-Encoding is not set.
+					Expect(req.Header.Get("Content-Encoding")).To(BeEmpty())
+
+					// If there is a body, then make sure we can read it
+					bodyBuf := new(bytes.Buffer)
+					if req.Header.Get("Content-Encoding") == "gzip" {
+						body, err := core.NewGzipDecompressionReader(req.Body)
+						Expect(err).To(BeNil())
+						_, err = bodyBuf.ReadFrom(body)
+						Expect(err).To(BeNil())
+					} else {
+						_, err := bodyBuf.ReadFrom(req.Body)
+						Expect(err).To(BeNil())
+					}
+					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -6155,7 +7560,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.CreateLogicalReplicationSlot(nil)
@@ -6181,30 +7585,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.CreateLogicalReplicationSlotWithContext(ctx, createLogicalReplicationSlotOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.CreateLogicalReplicationSlot(createLogicalReplicationSlotOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.CreateLogicalReplicationSlotWithContext(ctx, createLogicalReplicationSlotOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke CreateLogicalReplicationSlot with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -6295,10 +7675,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`DeleteLogicalReplicationSlot(deleteLogicalReplicationSlotOptions *DeleteLogicalReplicationSlotOptions)`, func() {
 		deleteLogicalReplicationSlotPath := "/deployments/testString/postgresql/logical_replication_slots/testString"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -6307,7 +7685,62 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("DELETE"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke DeleteLogicalReplicationSlot successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the DeleteLogicalReplicationSlotOptions model
+				deleteLogicalReplicationSlotOptionsModel := new(ibmclouddatabasesv5.DeleteLogicalReplicationSlotOptions)
+				deleteLogicalReplicationSlotOptionsModel.ID = core.StringPtr("testString")
+				deleteLogicalReplicationSlotOptionsModel.Name = core.StringPtr("testString")
+				deleteLogicalReplicationSlotOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.DeleteLogicalReplicationSlotWithContext(ctx, deleteLogicalReplicationSlotOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.DeleteLogicalReplicationSlot(deleteLogicalReplicationSlotOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.DeleteLogicalReplicationSlotWithContext(ctx, deleteLogicalReplicationSlotOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(deleteLogicalReplicationSlotPath))
+					Expect(req.Method).To(Equal("DELETE"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -6322,7 +7755,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.DeleteLogicalReplicationSlot(nil)
@@ -6342,30 +7774,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.DeleteLogicalReplicationSlotWithContext(ctx, deleteLogicalReplicationSlotOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.DeleteLogicalReplicationSlot(deleteLogicalReplicationSlotOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.DeleteLogicalReplicationSlotWithContext(ctx, deleteLogicalReplicationSlotOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke DeleteLogicalReplicationSlot with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -6443,6 +7851,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
 				Expect(serviceErr).To(BeNil())
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url from constructor successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -6453,6 +7867,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 			It(`Create service client using external config and set url programatically successfully`, func() {
 				SetTestEnvironment(testEnvironment)
@@ -6464,6 +7884,12 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService.Service.GetServiceURL()).To(Equal("https://testService/api"))
 				ClearTestEnvironment(testEnvironment)
+
+				clone := ibmCloudDatabasesService.Clone()
+				Expect(clone).ToNot(BeNil())
+				Expect(clone.Service != ibmCloudDatabasesService.Service).To(BeTrue())
+				Expect(clone.GetServiceURL()).To(Equal(ibmCloudDatabasesService.GetServiceURL()))
+				Expect(clone.Service.Options.Authenticator).To(Equal(ibmCloudDatabasesService.Service.Options.Authenticator))
 			})
 		})
 		Context(`Using external config, construct service client instances with error: Invalid Auth`, func() {
@@ -6499,6 +7925,16 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(serviceErr).ToNot(BeNil())
 				ClearTestEnvironment(testEnvironment)
 			})
+		})
+	})
+	Describe(`Regional endpoint tests`, func() {
+		It(`GetServiceURLForRegion(region string)`, func() {
+			var url string
+			var err error
+			url, err = ibmclouddatabasesv5.GetServiceURLForRegion("INVALID_REGION")
+			Expect(url).To(BeEmpty())
+			Expect(err).ToNot(BeNil())
+			fmt.Fprintf(GinkgoWriter, "Expected error: %s\n", err.Error())
 		})
 	})
 	Describe(`GetWhitelist(getWhitelistOptions *GetWhitelistOptions) - Operation response error`, func() {
@@ -6549,10 +7985,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`GetWhitelist(getWhitelistOptions *GetWhitelistOptions)`, func() {
 		getWhitelistPath := "/deployments/testString/whitelists/ip_addresses"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -6561,7 +7995,61 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("GET"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(200)
+					fmt.Fprintf(res, "%s", `{"ip_addresses": [{"address": "Address", "description": "Description"}]}`)
+				}))
+			})
+			It(`Invoke GetWhitelist successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the GetWhitelistOptions model
+				getWhitelistOptionsModel := new(ibmclouddatabasesv5.GetWhitelistOptions)
+				getWhitelistOptionsModel.ID = core.StringPtr("testString")
+				getWhitelistOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.GetWhitelistWithContext(ctx, getWhitelistOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.GetWhitelist(getWhitelistOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.GetWhitelistWithContext(ctx, getWhitelistOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(getWhitelistPath))
+					Expect(req.Method).To(Equal("GET"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -6576,7 +8064,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.GetWhitelist(nil)
@@ -6595,30 +8082,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetWhitelistWithContext(ctx, getWhitelistOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.GetWhitelist(getWhitelistOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.GetWhitelistWithContext(ctx, getWhitelistOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke GetWhitelist with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -6710,10 +8173,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`ReplaceWhitelist(replaceWhitelistOptions *ReplaceWhitelistOptions)`, func() {
 		replaceWhitelistPath := "/deployments/testString/whitelists/ip_addresses"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -6740,8 +8201,87 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Header["If-Match"]).ToNot(BeNil())
 					Expect(req.Header["If-Match"][0]).To(Equal(fmt.Sprintf("%v", "testString")))
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
 
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(202)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke ReplaceWhitelist successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the WhitelistEntry model
+				whitelistEntryModel := new(ibmclouddatabasesv5.WhitelistEntry)
+				whitelistEntryModel.Address = core.StringPtr("testString")
+				whitelistEntryModel.Description = core.StringPtr("testString")
+
+				// Construct an instance of the ReplaceWhitelistOptions model
+				replaceWhitelistOptionsModel := new(ibmclouddatabasesv5.ReplaceWhitelistOptions)
+				replaceWhitelistOptionsModel.ID = core.StringPtr("testString")
+				replaceWhitelistOptionsModel.IpAddresses = []ibmclouddatabasesv5.WhitelistEntry{*whitelistEntryModel}
+				replaceWhitelistOptionsModel.IfMatch = core.StringPtr("testString")
+				replaceWhitelistOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.ReplaceWhitelistWithContext(ctx, replaceWhitelistOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.ReplaceWhitelist(replaceWhitelistOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.ReplaceWhitelistWithContext(ctx, replaceWhitelistOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(replaceWhitelistPath))
+					Expect(req.Method).To(Equal("PUT"))
+
+					// For gzip-disabled operation, verify Content-Encoding is not set.
+					Expect(req.Header.Get("Content-Encoding")).To(BeEmpty())
+
+					// If there is a body, then make sure we can read it
+					bodyBuf := new(bytes.Buffer)
+					if req.Header.Get("Content-Encoding") == "gzip" {
+						body, err := core.NewGzipDecompressionReader(req.Body)
+						Expect(err).To(BeNil())
+						_, err = bodyBuf.ReadFrom(body)
+						Expect(err).To(BeNil())
+					} else {
+						_, err := bodyBuf.ReadFrom(req.Body)
+						Expect(err).To(BeNil())
+					}
+					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
+
+					Expect(req.Header["If-Match"]).ToNot(BeNil())
+					Expect(req.Header["If-Match"][0]).To(Equal(fmt.Sprintf("%v", "testString")))
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
 					res.WriteHeader(202)
@@ -6755,7 +8295,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.ReplaceWhitelist(nil)
@@ -6781,30 +8320,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.ReplaceWhitelistWithContext(ctx, replaceWhitelistOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.ReplaceWhitelist(replaceWhitelistOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.ReplaceWhitelistWithContext(ctx, replaceWhitelistOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke ReplaceWhitelist with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -6900,10 +8415,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`AddWhitelistEntry(addWhitelistEntryOptions *AddWhitelistEntryOptions)`, func() {
 		addWhitelistEntryPath := "/deployments/testString/whitelists/ip_addresses"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -6928,7 +8441,83 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(202)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke AddWhitelistEntry successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the WhitelistEntry model
+				whitelistEntryModel := new(ibmclouddatabasesv5.WhitelistEntry)
+				whitelistEntryModel.Address = core.StringPtr("testString")
+				whitelistEntryModel.Description = core.StringPtr("testString")
+
+				// Construct an instance of the AddWhitelistEntryOptions model
+				addWhitelistEntryOptionsModel := new(ibmclouddatabasesv5.AddWhitelistEntryOptions)
+				addWhitelistEntryOptionsModel.ID = core.StringPtr("testString")
+				addWhitelistEntryOptionsModel.IpAddress = whitelistEntryModel
+				addWhitelistEntryOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.AddWhitelistEntryWithContext(ctx, addWhitelistEntryOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.AddWhitelistEntry(addWhitelistEntryOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.AddWhitelistEntryWithContext(ctx, addWhitelistEntryOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(addWhitelistEntryPath))
+					Expect(req.Method).To(Equal("POST"))
+
+					// For gzip-disabled operation, verify Content-Encoding is not set.
+					Expect(req.Header.Get("Content-Encoding")).To(BeEmpty())
+
+					// If there is a body, then make sure we can read it
+					bodyBuf := new(bytes.Buffer)
+					if req.Header.Get("Content-Encoding") == "gzip" {
+						body, err := core.NewGzipDecompressionReader(req.Body)
+						Expect(err).To(BeNil())
+						_, err = bodyBuf.ReadFrom(body)
+						Expect(err).To(BeNil())
+					} else {
+						_, err := bodyBuf.ReadFrom(req.Body)
+						Expect(err).To(BeNil())
+					}
+					fmt.Fprintf(GinkgoWriter, "  Request body: %s", bodyBuf.String())
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -6943,7 +8532,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.AddWhitelistEntry(nil)
@@ -6968,30 +8556,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.AddWhitelistEntryWithContext(ctx, addWhitelistEntryOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.AddWhitelistEntry(addWhitelistEntryOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.AddWhitelistEntryWithContext(ctx, addWhitelistEntryOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke AddWhitelistEntry with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -7081,10 +8645,8 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 
 	Describe(`DeleteWhitelistEntry(deleteWhitelistEntryOptions *DeleteWhitelistEntryOptions)`, func() {
 		deleteWhitelistEntryPath := "/deployments/testString/whitelists/ip_addresses/testString"
-		var serverSleepTime time.Duration
-		Context(`Using mock server endpoint`, func() {
+		Context(`Using mock server endpoint with timeout`, func() {
 			BeforeEach(func() {
-				serverSleepTime = 0
 				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 					defer GinkgoRecover()
 
@@ -7093,7 +8655,62 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 					Expect(req.Method).To(Equal("DELETE"))
 
 					// Sleep a short time to support a timeout test
-					time.Sleep(serverSleepTime)
+					time.Sleep(100 * time.Millisecond)
+
+					// Set mock response
+					res.Header().Set("Content-type", "application/json")
+					res.WriteHeader(202)
+					fmt.Fprintf(res, "%s", `{"task": {"id": "ID", "description": "Description", "status": "running", "deployment_id": "DeploymentID", "progress_percent": 15, "created_at": "2019-01-01T12:00:00"}}`)
+				}))
+			})
+			It(`Invoke DeleteWhitelistEntry successfully with retries`, func() {
+				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
+					URL:           testServer.URL,
+					Authenticator: &core.NoAuthAuthenticator{},
+				})
+				Expect(serviceErr).To(BeNil())
+				Expect(ibmCloudDatabasesService).ToNot(BeNil())
+				ibmCloudDatabasesService.EnableRetries(0, 0)
+
+				// Construct an instance of the DeleteWhitelistEntryOptions model
+				deleteWhitelistEntryOptionsModel := new(ibmclouddatabasesv5.DeleteWhitelistEntryOptions)
+				deleteWhitelistEntryOptionsModel.ID = core.StringPtr("testString")
+				deleteWhitelistEntryOptionsModel.Ipaddress = core.StringPtr("testString")
+				deleteWhitelistEntryOptionsModel.Headers = map[string]string{"x-custom-header": "x-custom-value"}
+
+				// Invoke operation with a Context to test a timeout error
+				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc()
+				_, _, operationErr := ibmCloudDatabasesService.DeleteWhitelistEntryWithContext(ctx, deleteWhitelistEntryOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+
+				// Disable retries and test again
+				ibmCloudDatabasesService.DisableRetries()
+				result, response, operationErr := ibmCloudDatabasesService.DeleteWhitelistEntry(deleteWhitelistEntryOptionsModel)
+				Expect(operationErr).To(BeNil())
+				Expect(response).ToNot(BeNil())
+				Expect(result).ToNot(BeNil())
+
+				// Re-test the timeout error with retries disabled
+				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
+				defer cancelFunc2()
+				_, _, operationErr = ibmCloudDatabasesService.DeleteWhitelistEntryWithContext(ctx, deleteWhitelistEntryOptionsModel)
+				Expect(operationErr).ToNot(BeNil())
+				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
+			})
+			AfterEach(func() {
+				testServer.Close()
+			})
+		})
+		Context(`Using mock server endpoint`, func() {
+			BeforeEach(func() {
+				testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+					defer GinkgoRecover()
+
+					// Verify the contents of the request
+					Expect(req.URL.EscapedPath()).To(Equal(deleteWhitelistEntryPath))
+					Expect(req.Method).To(Equal("DELETE"))
 
 					// Set mock response
 					res.Header().Set("Content-type", "application/json")
@@ -7108,7 +8725,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				})
 				Expect(serviceErr).To(BeNil())
 				Expect(ibmCloudDatabasesService).ToNot(BeNil())
-				ibmCloudDatabasesService.EnableRetries(0, 0)
 
 				// Invoke operation with nil options model (negative test)
 				result, response, operationErr := ibmCloudDatabasesService.DeleteWhitelistEntry(nil)
@@ -7128,30 +8744,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(response).ToNot(BeNil())
 				Expect(result).ToNot(BeNil())
 
-				// Invoke operation with a Context to test a timeout error
-				ctx, cancelFunc := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.DeleteWhitelistEntryWithContext(ctx, deleteWhitelistEntryOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
-
-				// Disable retries and test again
-				ibmCloudDatabasesService.DisableRetries()
-				result, response, operationErr = ibmCloudDatabasesService.DeleteWhitelistEntry(deleteWhitelistEntryOptionsModel)
-				Expect(operationErr).To(BeNil())
-				Expect(response).ToNot(BeNil())
-				Expect(result).ToNot(BeNil())
-
-				// Re-test the timeout error with retries disabled
-				ctx, cancelFunc2 := context.WithTimeout(context.Background(), 80*time.Millisecond)
-				defer cancelFunc2()
-				serverSleepTime = 100 * time.Millisecond
-				_, _, operationErr = ibmCloudDatabasesService.DeleteWhitelistEntryWithContext(ctx, deleteWhitelistEntryOptionsModel)
-				Expect(operationErr).ToNot(BeNil())
-				Expect(operationErr.Error()).To(ContainSubstring("deadline exceeded"))
-				serverSleepTime = time.Duration(0)
 			})
 			It(`Invoke DeleteWhitelistEntry with error: Operation validation and request error`, func() {
 				ibmCloudDatabasesService, serviceErr := ibmclouddatabasesv5.NewIbmCloudDatabasesV5(&ibmclouddatabasesv5.IbmCloudDatabasesV5Options{
@@ -7212,11 +8804,6 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(addWhitelistEntryOptionsModel.ID).To(Equal(core.StringPtr("testString")))
 				Expect(addWhitelistEntryOptionsModel.IpAddress).To(Equal(whitelistEntryModel))
 				Expect(addWhitelistEntryOptionsModel.Headers).To(Equal(map[string]string{"foo": "bar"}))
-			})
-			It(`Invoke NewAutoscalingSetGroup successfully`, func() {
-				var autoscaling ibmclouddatabasesv5.AutoscalingSetGroupAutoscalingIntf = nil
-				_, err := ibmCloudDatabasesService.NewAutoscalingSetGroup(autoscaling)
-				Expect(err).ToNot(BeNil())
 			})
 			It(`Invoke NewChangeUserPasswordOptions successfully`, func() {
 				// Construct an instance of the APasswordSettingUser model
@@ -7665,17 +9252,11 @@ var _ = Describe(`IbmCloudDatabasesV5`, func() {
 				Expect(autoscalingDiskGroupDiskModel.Scalers).To(Equal(autoscalingDiskGroupDiskScalersModel))
 				Expect(autoscalingDiskGroupDiskModel.Rate).To(Equal(autoscalingDiskGroupDiskRateModel))
 
-				// Construct an instance of the AutoscalingSetGroupAutoscalingAutoscalingDiskGroup model
-				autoscalingSetGroupAutoscalingModel := new(ibmclouddatabasesv5.AutoscalingSetGroupAutoscalingAutoscalingDiskGroup)
-				Expect(autoscalingSetGroupAutoscalingModel).ToNot(BeNil())
-				autoscalingSetGroupAutoscalingModel.Disk = autoscalingDiskGroupDiskModel
-				Expect(autoscalingSetGroupAutoscalingModel.Disk).To(Equal(autoscalingDiskGroupDiskModel))
-
-				// Construct an instance of the AutoscalingSetGroup model
-				autoscalingSetGroupModel := new(ibmclouddatabasesv5.AutoscalingSetGroup)
+				// Construct an instance of the AutoscalingSetGroupAutoscalingDiskGroup model
+				autoscalingSetGroupModel := new(ibmclouddatabasesv5.AutoscalingSetGroupAutoscalingDiskGroup)
 				Expect(autoscalingSetGroupModel).ToNot(BeNil())
-				autoscalingSetGroupModel.Autoscaling = autoscalingSetGroupAutoscalingModel
-				Expect(autoscalingSetGroupModel.Autoscaling).To(Equal(autoscalingSetGroupAutoscalingModel))
+				autoscalingSetGroupModel.Disk = autoscalingDiskGroupDiskModel
+				Expect(autoscalingSetGroupModel.Disk).To(Equal(autoscalingDiskGroupDiskModel))
 
 				// Construct an instance of the SetAutoscalingConditionsOptions model
 				id := "testString"

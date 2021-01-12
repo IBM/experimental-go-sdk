@@ -1,5 +1,5 @@
 /**
- * (C) Copyright IBM Corp. 2020.
+ * (C) Copyright IBM Corp. 2021.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 
 /*
- * IBM OpenAPI SDK Code Generator Version: 99-SNAPSHOT-b03c6166-20201125-093339
+ * IBM OpenAPI SDK Code Generator Version: 3.24.0-fac1d4cc-20210108-162022
  */
  
 
@@ -26,9 +26,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	common "github.com/IBM/experimental-go-sdk/common"
 	"github.com/IBM/go-sdk-core/v4/core"
 	"github.com/go-openapi/strfmt"
-	common "github.com/IBM/experimental-go-sdk/common"
 	"net/http"
 	"reflect"
 	"time"
@@ -111,6 +111,21 @@ func NewIbmCloudDatabasesV5(options *IbmCloudDatabasesV5Options) (service *IbmCl
 	}
 
 	return
+}
+
+// GetServiceURLForRegion returns the service URL to be used for the specified region
+func GetServiceURLForRegion(region string) (string, error) {
+	return "", fmt.Errorf("service does not support regional URLs")
+}
+
+// Clone makes a copy of "ibmCloudDatabases" suitable for processing requests.
+func (ibmCloudDatabases *IbmCloudDatabasesV5) Clone() *IbmCloudDatabasesV5 {
+	if core.IsNil(ibmCloudDatabases) {
+		return nil
+	}
+	clone := *ibmCloudDatabases
+	clone.Service = ibmCloudDatabases.Service.Clone()
+	return &clone
 }
 
 // SetServiceURL sets the service URL
@@ -2417,9 +2432,9 @@ func UnmarshalAPasswordSettingUser(m map[string]json.RawMessage, result interfac
 // AddWhitelistEntryOptions : The AddWhitelistEntry options.
 type AddWhitelistEntryOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
-	IpAddress *WhitelistEntry `json:"ip_address,omitempty"`
+	IpAddress *WhitelistEntry
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -2619,23 +2634,6 @@ func UnmarshalAutoscalingDiskGroupDiskScalersIoUtilization(m map[string]json.Raw
 
 // AutoscalingGroup : AutoscalingGroup struct
 type AutoscalingGroup struct {
-	Autoscaling *AutoscalingGroupAutoscaling `json:"autoscaling" validate:"required"`
-}
-
-
-// UnmarshalAutoscalingGroup unmarshals an instance of AutoscalingGroup from the specified map of raw messages.
-func UnmarshalAutoscalingGroup(m map[string]json.RawMessage, result interface{}) (err error) {
-	obj := new(AutoscalingGroup)
-	err = core.UnmarshalModel(m, "autoscaling", &obj.Autoscaling, UnmarshalAutoscalingGroupAutoscaling)
-	if err != nil {
-		return
-	}
-	reflect.ValueOf(result).Elem().Set(reflect.ValueOf(obj))
-	return
-}
-
-// AutoscalingGroupAutoscaling : AutoscalingGroupAutoscaling struct
-type AutoscalingGroupAutoscaling struct {
 	Disk *AutoscalingDiskGroupDisk `json:"disk,omitempty"`
 
 	Memory *AutoscalingMemoryGroupMemory `json:"memory,omitempty"`
@@ -2644,9 +2642,9 @@ type AutoscalingGroupAutoscaling struct {
 }
 
 
-// UnmarshalAutoscalingGroupAutoscaling unmarshals an instance of AutoscalingGroupAutoscaling from the specified map of raw messages.
-func UnmarshalAutoscalingGroupAutoscaling(m map[string]json.RawMessage, result interface{}) (err error) {
-	obj := new(AutoscalingGroupAutoscaling)
+// UnmarshalAutoscalingGroup unmarshals an instance of AutoscalingGroup from the specified map of raw messages.
+func UnmarshalAutoscalingGroup(m map[string]json.RawMessage, result interface{}) (err error) {
+	obj := new(AutoscalingGroup)
 	err = core.UnmarshalModel(m, "disk", &obj.Disk, UnmarshalAutoscalingDiskGroupDisk)
 	if err != nil {
 		return
@@ -2768,37 +2766,11 @@ func UnmarshalAutoscalingMemoryGroupMemoryScalersIoUtilization(m map[string]json
 }
 
 // AutoscalingSetGroup : AutoscalingSetGroup struct
-type AutoscalingSetGroup struct {
-	Autoscaling AutoscalingSetGroupAutoscalingIntf `json:"autoscaling" validate:"required"`
-}
-
-
-// NewAutoscalingSetGroup : Instantiate AutoscalingSetGroup (Generic Model Constructor)
-func (*IbmCloudDatabasesV5) NewAutoscalingSetGroup(autoscaling AutoscalingSetGroupAutoscalingIntf) (model *AutoscalingSetGroup, err error) {
-	model = &AutoscalingSetGroup{
-		Autoscaling: autoscaling,
-	}
-	err = core.ValidateStruct(model, "required parameters")
-	return
-}
-
-// UnmarshalAutoscalingSetGroup unmarshals an instance of AutoscalingSetGroup from the specified map of raw messages.
-func UnmarshalAutoscalingSetGroup(m map[string]json.RawMessage, result interface{}) (err error) {
-	obj := new(AutoscalingSetGroup)
-	err = core.UnmarshalModel(m, "autoscaling", &obj.Autoscaling, UnmarshalAutoscalingSetGroupAutoscaling)
-	if err != nil {
-		return
-	}
-	reflect.ValueOf(result).Elem().Set(reflect.ValueOf(obj))
-	return
-}
-
-// AutoscalingSetGroupAutoscaling : AutoscalingSetGroupAutoscaling struct
 // Models which "extend" this model:
-// - AutoscalingSetGroupAutoscalingAutoscalingDiskGroup
-// - AutoscalingSetGroupAutoscalingAutoscalingMemoryGroup
-// - AutoscalingSetGroupAutoscalingAutoscalingCPUGroup
-type AutoscalingSetGroupAutoscaling struct {
+// - AutoscalingSetGroupAutoscalingDiskGroup
+// - AutoscalingSetGroupAutoscalingMemoryGroup
+// - AutoscalingSetGroupAutoscalingCPUGroup
+type AutoscalingSetGroup struct {
 	Disk *AutoscalingDiskGroupDisk `json:"disk,omitempty"`
 
 	Memory *AutoscalingMemoryGroupMemory `json:"memory,omitempty"`
@@ -2806,17 +2778,17 @@ type AutoscalingSetGroupAutoscaling struct {
 	Cpu *AutoscalingCPUGroup `json:"cpu,omitempty"`
 }
 
-func (*AutoscalingSetGroupAutoscaling) isaAutoscalingSetGroupAutoscaling() bool {
+func (*AutoscalingSetGroup) isaAutoscalingSetGroup() bool {
 	return true
 }
 
-type AutoscalingSetGroupAutoscalingIntf interface {
-	isaAutoscalingSetGroupAutoscaling() bool
+type AutoscalingSetGroupIntf interface {
+	isaAutoscalingSetGroup() bool
 }
 
-// UnmarshalAutoscalingSetGroupAutoscaling unmarshals an instance of AutoscalingSetGroupAutoscaling from the specified map of raw messages.
-func UnmarshalAutoscalingSetGroupAutoscaling(m map[string]json.RawMessage, result interface{}) (err error) {
-	obj := new(AutoscalingSetGroupAutoscaling)
+// UnmarshalAutoscalingSetGroup unmarshals an instance of AutoscalingSetGroup from the specified map of raw messages.
+func UnmarshalAutoscalingSetGroup(m map[string]json.RawMessage, result interface{}) (err error) {
+	obj := new(AutoscalingSetGroup)
 	err = core.UnmarshalModel(m, "disk", &obj.Disk, UnmarshalAutoscalingDiskGroupDisk)
 	if err != nil {
 		return
@@ -2928,15 +2900,15 @@ func UnmarshalBackups(m map[string]json.RawMessage, result interface{}) (err err
 // ChangeUserPasswordOptions : The ChangeUserPassword options.
 type ChangeUserPasswordOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// User type.
-	UserType *string `json:"user_type" validate:"required,ne="`
+	UserType *string `validate:"required,ne="`
 
 	// User ID.
-	Username *string `json:"username" validate:"required,ne="`
+	Username *string `validate:"required,ne="`
 
-	User *APasswordSettingUser `json:"user,omitempty"`
+	User *APasswordSettingUser
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -3061,20 +3033,20 @@ func UnmarshalChoicePropertySchema(m map[string]json.RawMessage, result interfac
 // CompleteConnectionDeprecatedOptions : The CompleteConnectionDeprecated options.
 type CompleteConnectionDeprecatedOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// User type.
-	UserType *string `json:"user_type" validate:"required,ne="`
+	UserType *string `validate:"required,ne="`
 
 	// User ID.
-	UserID *string `json:"user_id" validate:"required,ne="`
+	UserID *string `validate:"required,ne="`
 
 	// Password to be substituted into the response.
-	Password *string `json:"password,omitempty"`
+	Password *string
 
 	// Optional certificate root path to prepend certificate names. Certificates would be stored in this directory for use
 	// by other commands.
-	CertificateRoot *string `json:"certificate_root,omitempty"`
+	CertificateRoot *string
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -3128,24 +3100,24 @@ func (options *CompleteConnectionDeprecatedOptions) SetHeaders(param map[string]
 // CompleteConnectionOptions : The CompleteConnection options.
 type CompleteConnectionOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// User type of `database` is the only currently supported value.
-	UserType *string `json:"user_type" validate:"required,ne="`
+	UserType *string `validate:"required,ne="`
 
 	// User ID.
-	UserID *string `json:"user_id" validate:"required,ne="`
+	UserID *string `validate:"required,ne="`
 
 	// Endpoint Type. The select endpoint must be enabled on the deployment before its connection information can be
 	// fetched.
-	EndpointType *string `json:"endpoint_type" validate:"required,ne="`
+	EndpointType *string `validate:"required,ne="`
 
 	// Password to be substituted into the response.
-	Password *string `json:"password,omitempty"`
+	Password *string
 
 	// Optional certificate root path to prepend certificate names. Certificates would be stored in this directory for use
 	// by other commands.
-	CertificateRoot *string `json:"certificate_root,omitempty"`
+	CertificateRoot *string
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -3553,12 +3525,12 @@ func UnmarshalConnectionConnection(m map[string]json.RawMessage, result interfac
 // CreateDatabaseUserOptions : The CreateDatabaseUser options.
 type CreateDatabaseUserOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// User type.
-	UserType *string `json:"user_type" validate:"required,ne="`
+	UserType *string `validate:"required,ne="`
 
-	User *CreateDatabaseUserRequestUser `json:"user,omitempty"`
+	User *CreateDatabaseUserRequestUser
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -3648,9 +3620,9 @@ func UnmarshalCreateDatabaseUserResponse(m map[string]json.RawMessage, result in
 // CreateLogicalReplicationSlotOptions : The CreateLogicalReplicationSlot options.
 type CreateLogicalReplicationSlotOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
-	LogicalReplicationSlot *LogicalReplicationSlotLogicalReplicationSlot `json:"logical_replication_slot,omitempty"`
+	LogicalReplicationSlot *LogicalReplicationSlotLogicalReplicationSlot
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -3701,13 +3673,13 @@ func UnmarshalCreateLogicalReplicationSlotResponse(m map[string]json.RawMessage,
 // DeleteDatabaseUserOptions : The DeleteDatabaseUser options.
 type DeleteDatabaseUserOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// User type.
-	UserType *string `json:"user_type" validate:"required,ne="`
+	UserType *string `validate:"required,ne="`
 
 	// Username.
-	Username *string `json:"username" validate:"required,ne="`
+	Username *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -3766,10 +3738,10 @@ func UnmarshalDeleteDatabaseUserResponse(m map[string]json.RawMessage, result in
 // DeleteLogicalReplicationSlotOptions : The DeleteLogicalReplicationSlot options.
 type DeleteLogicalReplicationSlotOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Name of the logical replication slot.
-	Name *string `json:"name" validate:"required,ne="`
+	Name *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -3821,10 +3793,10 @@ func UnmarshalDeleteLogicalReplicationSlotResponse(m map[string]json.RawMessage,
 // DeleteWhitelistEntryOptions : The DeleteWhitelistEntry options.
 type DeleteWhitelistEntryOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// An IPv4 address or a CIDR range (netmasked IPv4 address).
-	Ipaddress *string `json:"ipaddress" validate:"required,ne="`
+	Ipaddress *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -4201,7 +4173,7 @@ func UnmarshalElasticsearchConnectionHTTPSHostsItem(m map[string]json.RawMessage
 // FileSyncOptions : The FileSync options.
 type FileSyncOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -4391,10 +4363,10 @@ func UnmarshalGRPCConnectionURIHostsItem(m map[string]json.RawMessage, result in
 // GetAutoscalingConditionsOptions : The GetAutoscalingConditions options.
 type GetAutoscalingConditionsOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Group ID.
-	GroupID *string `json:"group_id" validate:"required,ne="`
+	GroupID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -4446,7 +4418,7 @@ func UnmarshalGetAutoscalingConditionsResponse(m map[string]json.RawMessage, res
 // GetBackupInfoOptions : The GetBackupInfo options.
 type GetBackupInfoOptions struct {
 	// Backup ID.
-	BackupID *string `json:"backup_id" validate:"required,ne="`
+	BackupID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -4491,17 +4463,17 @@ func UnmarshalGetBackupInfoResponse(m map[string]json.RawMessage, result interfa
 // GetConnectionDeprecatedOptions : The GetConnectionDeprecated options.
 type GetConnectionDeprecatedOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// User type.
-	UserType *string `json:"user_type" validate:"required,ne="`
+	UserType *string `validate:"required,ne="`
 
 	// User ID.
-	UserID *string `json:"user_id" validate:"required,ne="`
+	UserID *string `validate:"required,ne="`
 
 	// Optional certificate root path to prepend certificate names. Certificates would be stored in this directory for use
 	// by other commands.
-	CertificateRoot *string `json:"certificate_root,omitempty"`
+	CertificateRoot *string
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -4549,20 +4521,20 @@ func (options *GetConnectionDeprecatedOptions) SetHeaders(param map[string]strin
 // GetConnectionOptions : The GetConnection options.
 type GetConnectionOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// User type.
-	UserType *string `json:"user_type" validate:"required,ne="`
+	UserType *string `validate:"required,ne="`
 
 	// User ID.
-	UserID *string `json:"user_id" validate:"required,ne="`
+	UserID *string `validate:"required,ne="`
 
 	// Endpoint Type. The endpoint must be enabled on the deployment before its connection information can be fetched.
-	EndpointType *string `json:"endpoint_type" validate:"required,ne="`
+	EndpointType *string `validate:"required,ne="`
 
 	// Optional certificate root path to prepend certificate names. Certificates would be stored in this directory for use
 	// by other commands.
-	CertificateRoot *string `json:"certificate_root,omitempty"`
+	CertificateRoot *string
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -4624,7 +4596,7 @@ func (options *GetConnectionOptions) SetHeaders(param map[string]string) *GetCon
 // GetDatabaseConfigurationSchemaOptions : The GetDatabaseConfigurationSchema options.
 type GetDatabaseConfigurationSchemaOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -4670,7 +4642,7 @@ func UnmarshalGetDatabaseConfigurationSchemaResponse(m map[string]json.RawMessag
 // GetDefaultScalingGroupsOptions : The GetDefaultScalingGroups options.
 type GetDefaultScalingGroupsOptions struct {
 	// Database type name.
-	Type *string `json:"type" validate:"required,ne="`
+	Type *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -4740,7 +4712,7 @@ func UnmarshalGetDeployablesResponse(m map[string]json.RawMessage, result interf
 // GetDeploymentBackupsOptions : The GetDeploymentBackups options.
 type GetDeploymentBackupsOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -4768,7 +4740,7 @@ func (options *GetDeploymentBackupsOptions) SetHeaders(param map[string]string) 
 // GetDeploymentInfoOptions : The GetDeploymentInfo options.
 type GetDeploymentInfoOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -4813,7 +4785,7 @@ func UnmarshalGetDeploymentInfoResponse(m map[string]json.RawMessage, result int
 // GetDeploymentScalingGroupsOptions : The GetDeploymentScalingGroups options.
 type GetDeploymentScalingGroupsOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -4841,7 +4813,7 @@ func (options *GetDeploymentScalingGroupsOptions) SetHeaders(param map[string]st
 // GetDeploymentTasksOptions : The GetDeploymentTasks options.
 type GetDeploymentTasksOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -4869,7 +4841,7 @@ func (options *GetDeploymentTasksOptions) SetHeaders(param map[string]string) *G
 // GetPITRdataOptions : The GetPITRdata options.
 type GetPITRdataOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -4933,7 +4905,7 @@ func UnmarshalGetRegionsResponse(m map[string]json.RawMessage, result interface{
 // GetRemotesOptions : The GetRemotes options.
 type GetRemotesOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -4979,7 +4951,7 @@ func UnmarshalGetRemotesResponse(m map[string]json.RawMessage, result interface{
 // GetRemotesSchemaOptions : The GetRemotesSchema options.
 type GetRemotesSchemaOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -5024,7 +4996,7 @@ func UnmarshalGetRemotesSchemaResponse(m map[string]json.RawMessage, result inte
 // GetTasksOptions : The GetTasks options.
 type GetTasksOptions struct {
 	// Task ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -5069,13 +5041,13 @@ func UnmarshalGetTasksResponse(m map[string]json.RawMessage, result interface{})
 // GetUserOptions : The GetUser options.
 type GetUserOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// User ID.
-	UserID *string `json:"user_id" validate:"required,ne="`
+	UserID *string `validate:"required,ne="`
 
 	// Endpoint Type. The endpoint must be enabled on the deployment before its connection information can be fetched.
-	EndpointType *string `json:"endpoint_type" validate:"required,ne="`
+	EndpointType *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -5124,7 +5096,7 @@ func (options *GetUserOptions) SetHeaders(param map[string]string) *GetUserOptio
 // GetWhitelistOptions : The GetWhitelist options.
 type GetWhitelistOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -5560,7 +5532,7 @@ func UnmarshalIntegerPropertySchema(m map[string]json.RawMessage, result interfa
 // KillConnectionsOptions : The KillConnections options.
 type KillConnectionsOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -6715,14 +6687,14 @@ func UnmarshalRemotes(m map[string]json.RawMessage, result interface{}) (err err
 // ReplaceWhitelistOptions : The ReplaceWhitelist options.
 type ReplaceWhitelistOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// An array of allowlist entries.
-	IpAddresses []WhitelistEntry `json:"ip_addresses,omitempty"`
+	IpAddresses []WhitelistEntry
 
 	// Verify that the current allowlist matches a provided ETag value. Use in conjunction with the GET operation's ETag
 	// header to ensure synchronicity between clients.
-	IfMatch *string `json:"If-Match,omitempty"`
+	IfMatch *string
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -6779,12 +6751,12 @@ func UnmarshalReplaceWhitelistResponse(m map[string]json.RawMessage, result inte
 // SetAutoscalingConditionsOptions : The SetAutoscalingConditions options.
 type SetAutoscalingConditionsOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Group ID.
-	GroupID *string `json:"group_id" validate:"required,ne="`
+	GroupID *string `validate:"required,ne="`
 
-	Autoscaling *AutoscalingSetGroup `json:"autoscaling,omitempty"`
+	Autoscaling AutoscalingSetGroupIntf
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -6811,7 +6783,7 @@ func (options *SetAutoscalingConditionsOptions) SetGroupID(groupID string) *SetA
 }
 
 // SetAutoscaling : Allow user to set Autoscaling
-func (options *SetAutoscalingConditionsOptions) SetAutoscaling(autoscaling *AutoscalingSetGroup) *SetAutoscalingConditionsOptions {
+func (options *SetAutoscalingConditionsOptions) SetAutoscaling(autoscaling AutoscalingSetGroupIntf) *SetAutoscalingConditionsOptions {
 	options.Autoscaling = autoscaling
 	return options
 }
@@ -7036,9 +7008,9 @@ func UnmarshalSetConfigurationConfiguration(m map[string]json.RawMessage, result
 // SetDatabaseConfigurationOptions : The SetDatabaseConfiguration options.
 type SetDatabaseConfigurationOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
-	Configuration SetConfigurationConfigurationIntf `json:"configuration" validate:"required"`
+	Configuration SetConfigurationConfigurationIntf `validate:"required"`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -7090,13 +7062,13 @@ func UnmarshalSetDatabaseConfigurationResponse(m map[string]json.RawMessage, res
 // SetDeploymentScalingGroupOptions : The SetDeploymentScalingGroup options.
 type SetDeploymentScalingGroupOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Group Id.
-	GroupID *string `json:"group_id" validate:"required,ne="`
+	GroupID *string `validate:"required,ne="`
 
 	// Scaling group settings.
-	SetDeploymentScalingGroupRequest SetDeploymentScalingGroupRequestIntf `json:"SetDeploymentScalingGroupRequest" validate:"required"`
+	SetDeploymentScalingGroupRequest SetDeploymentScalingGroupRequestIntf `validate:"required"`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -7256,9 +7228,9 @@ func UnmarshalSetMemoryGroupMemory(m map[string]json.RawMessage, result interfac
 // SetPromotionOptions : The SetPromotion options.
 type SetPromotionOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
-	Promotion SetPromotionPromotionIntf `json:"Promotion" validate:"required"`
+	Promotion SetPromotionPromotionIntf `validate:"required"`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -7338,13 +7310,13 @@ func UnmarshalSetPromotionResponse(m map[string]json.RawMessage, result interfac
 // SetRemotesOptions : The SetRemotes options.
 type SetRemotesOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
-	Remotes *SetRemotesRequestRemotes `json:"remotes,omitempty"`
+	Remotes *SetRemotesRequestRemotes
 
 	// Option to restore instance without taking a backup once data is restored. Allows restored deployment to be available
 	// sooner.
-	SkipInitialBackup *bool `json:"skip_initial_backup,omitempty"`
+	SkipInitialBackup *bool
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -7419,7 +7391,7 @@ func UnmarshalSetRemotesResponse(m map[string]json.RawMessage, result interface{
 // StartOndemandBackupOptions : The StartOndemandBackup options.
 type StartOndemandBackupOptions struct {
 	// Deployment ID.
-	ID *string `json:"id" validate:"required,ne="`
+	ID *string `validate:"required,ne="`
 
 	// Allows users to set headers on API requests
 	Headers map[string]string
@@ -7582,20 +7554,20 @@ func UnmarshalWhitelistEntry(m map[string]json.RawMessage, result interface{}) (
 	return
 }
 
-// AutoscalingSetGroupAutoscalingAutoscalingCPUGroup : AutoscalingSetGroupAutoscalingAutoscalingCPUGroup struct
-// This model "extends" AutoscalingSetGroupAutoscaling
-type AutoscalingSetGroupAutoscalingAutoscalingCPUGroup struct {
+// AutoscalingSetGroupAutoscalingCPUGroup : AutoscalingSetGroupAutoscalingCPUGroup struct
+// This model "extends" AutoscalingSetGroup
+type AutoscalingSetGroupAutoscalingCPUGroup struct {
 	Cpu *AutoscalingCPUGroup `json:"cpu,omitempty"`
 }
 
 
-func (*AutoscalingSetGroupAutoscalingAutoscalingCPUGroup) isaAutoscalingSetGroupAutoscaling() bool {
+func (*AutoscalingSetGroupAutoscalingCPUGroup) isaAutoscalingSetGroup() bool {
 	return true
 }
 
-// UnmarshalAutoscalingSetGroupAutoscalingAutoscalingCPUGroup unmarshals an instance of AutoscalingSetGroupAutoscalingAutoscalingCPUGroup from the specified map of raw messages.
-func UnmarshalAutoscalingSetGroupAutoscalingAutoscalingCPUGroup(m map[string]json.RawMessage, result interface{}) (err error) {
-	obj := new(AutoscalingSetGroupAutoscalingAutoscalingCPUGroup)
+// UnmarshalAutoscalingSetGroupAutoscalingCPUGroup unmarshals an instance of AutoscalingSetGroupAutoscalingCPUGroup from the specified map of raw messages.
+func UnmarshalAutoscalingSetGroupAutoscalingCPUGroup(m map[string]json.RawMessage, result interface{}) (err error) {
+	obj := new(AutoscalingSetGroupAutoscalingCPUGroup)
 	err = core.UnmarshalModel(m, "cpu", &obj.Cpu, UnmarshalAutoscalingCPUGroup)
 	if err != nil {
 		return
@@ -7604,20 +7576,20 @@ func UnmarshalAutoscalingSetGroupAutoscalingAutoscalingCPUGroup(m map[string]jso
 	return
 }
 
-// AutoscalingSetGroupAutoscalingAutoscalingDiskGroup : AutoscalingSetGroupAutoscalingAutoscalingDiskGroup struct
-// This model "extends" AutoscalingSetGroupAutoscaling
-type AutoscalingSetGroupAutoscalingAutoscalingDiskGroup struct {
+// AutoscalingSetGroupAutoscalingDiskGroup : AutoscalingSetGroupAutoscalingDiskGroup struct
+// This model "extends" AutoscalingSetGroup
+type AutoscalingSetGroupAutoscalingDiskGroup struct {
 	Disk *AutoscalingDiskGroupDisk `json:"disk,omitempty"`
 }
 
 
-func (*AutoscalingSetGroupAutoscalingAutoscalingDiskGroup) isaAutoscalingSetGroupAutoscaling() bool {
+func (*AutoscalingSetGroupAutoscalingDiskGroup) isaAutoscalingSetGroup() bool {
 	return true
 }
 
-// UnmarshalAutoscalingSetGroupAutoscalingAutoscalingDiskGroup unmarshals an instance of AutoscalingSetGroupAutoscalingAutoscalingDiskGroup from the specified map of raw messages.
-func UnmarshalAutoscalingSetGroupAutoscalingAutoscalingDiskGroup(m map[string]json.RawMessage, result interface{}) (err error) {
-	obj := new(AutoscalingSetGroupAutoscalingAutoscalingDiskGroup)
+// UnmarshalAutoscalingSetGroupAutoscalingDiskGroup unmarshals an instance of AutoscalingSetGroupAutoscalingDiskGroup from the specified map of raw messages.
+func UnmarshalAutoscalingSetGroupAutoscalingDiskGroup(m map[string]json.RawMessage, result interface{}) (err error) {
+	obj := new(AutoscalingSetGroupAutoscalingDiskGroup)
 	err = core.UnmarshalModel(m, "disk", &obj.Disk, UnmarshalAutoscalingDiskGroupDisk)
 	if err != nil {
 		return
@@ -7626,20 +7598,20 @@ func UnmarshalAutoscalingSetGroupAutoscalingAutoscalingDiskGroup(m map[string]js
 	return
 }
 
-// AutoscalingSetGroupAutoscalingAutoscalingMemoryGroup : AutoscalingSetGroupAutoscalingAutoscalingMemoryGroup struct
-// This model "extends" AutoscalingSetGroupAutoscaling
-type AutoscalingSetGroupAutoscalingAutoscalingMemoryGroup struct {
+// AutoscalingSetGroupAutoscalingMemoryGroup : AutoscalingSetGroupAutoscalingMemoryGroup struct
+// This model "extends" AutoscalingSetGroup
+type AutoscalingSetGroupAutoscalingMemoryGroup struct {
 	Memory *AutoscalingMemoryGroupMemory `json:"memory,omitempty"`
 }
 
 
-func (*AutoscalingSetGroupAutoscalingAutoscalingMemoryGroup) isaAutoscalingSetGroupAutoscaling() bool {
+func (*AutoscalingSetGroupAutoscalingMemoryGroup) isaAutoscalingSetGroup() bool {
 	return true
 }
 
-// UnmarshalAutoscalingSetGroupAutoscalingAutoscalingMemoryGroup unmarshals an instance of AutoscalingSetGroupAutoscalingAutoscalingMemoryGroup from the specified map of raw messages.
-func UnmarshalAutoscalingSetGroupAutoscalingAutoscalingMemoryGroup(m map[string]json.RawMessage, result interface{}) (err error) {
-	obj := new(AutoscalingSetGroupAutoscalingAutoscalingMemoryGroup)
+// UnmarshalAutoscalingSetGroupAutoscalingMemoryGroup unmarshals an instance of AutoscalingSetGroupAutoscalingMemoryGroup from the specified map of raw messages.
+func UnmarshalAutoscalingSetGroupAutoscalingMemoryGroup(m map[string]json.RawMessage, result interface{}) (err error) {
+	obj := new(AutoscalingSetGroupAutoscalingMemoryGroup)
 	err = core.UnmarshalModel(m, "memory", &obj.Memory, UnmarshalAutoscalingMemoryGroupMemory)
 	if err != nil {
 		return

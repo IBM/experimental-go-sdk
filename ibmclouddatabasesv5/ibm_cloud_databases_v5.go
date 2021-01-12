@@ -2482,16 +2482,57 @@ func UnmarshalAddWhitelistEntryResponse(m map[string]json.RawMessage, result int
 	return
 }
 
-// AutoscalingCPUGroup : AutoscalingCPUGroup struct
-type AutoscalingCPUGroup struct {
-	Cpu *AutoscalingCPUGroup `json:"cpu,omitempty"`
+// AutoscalingCPUGroupCPU : AutoscalingCPUGroupCPU struct
+type AutoscalingCPUGroupCPU struct {
+	Scalers interface{} `json:"scalers,omitempty"`
+
+	Rate *AutoscalingCPUGroupCPURate `json:"rate,omitempty"`
 }
 
 
-// UnmarshalAutoscalingCPUGroup unmarshals an instance of AutoscalingCPUGroup from the specified map of raw messages.
-func UnmarshalAutoscalingCPUGroup(m map[string]json.RawMessage, result interface{}) (err error) {
-	obj := new(AutoscalingCPUGroup)
-	err = core.UnmarshalModel(m, "cpu", &obj.Cpu, UnmarshalAutoscalingCPUGroup)
+// UnmarshalAutoscalingCPUGroupCPU unmarshals an instance of AutoscalingCPUGroupCPU from the specified map of raw messages.
+func UnmarshalAutoscalingCPUGroupCPU(m map[string]json.RawMessage, result interface{}) (err error) {
+	obj := new(AutoscalingCPUGroupCPU)
+	err = core.UnmarshalPrimitive(m, "scalers", &obj.Scalers)
+	if err != nil {
+		return
+	}
+	err = core.UnmarshalModel(m, "rate", &obj.Rate, UnmarshalAutoscalingCPUGroupCPURate)
+	if err != nil {
+		return
+	}
+	reflect.ValueOf(result).Elem().Set(reflect.ValueOf(obj))
+	return
+}
+
+// AutoscalingCPUGroupCPURate : AutoscalingCPUGroupCPURate struct
+type AutoscalingCPUGroupCPURate struct {
+	IncreasePercent *float64 `json:"increase_percent,omitempty"`
+
+	PeriodSeconds *int64 `json:"period_seconds,omitempty"`
+
+	LimitCountPerMember *int64 `json:"limit_count_per_member,omitempty"`
+
+	Units *string `json:"units,omitempty"`
+}
+
+
+// UnmarshalAutoscalingCPUGroupCPURate unmarshals an instance of AutoscalingCPUGroupCPURate from the specified map of raw messages.
+func UnmarshalAutoscalingCPUGroupCPURate(m map[string]json.RawMessage, result interface{}) (err error) {
+	obj := new(AutoscalingCPUGroupCPURate)
+	err = core.UnmarshalPrimitive(m, "increase_percent", &obj.IncreasePercent)
+	if err != nil {
+		return
+	}
+	err = core.UnmarshalPrimitive(m, "period_seconds", &obj.PeriodSeconds)
+	if err != nil {
+		return
+	}
+	err = core.UnmarshalPrimitive(m, "limit_count_per_member", &obj.LimitCountPerMember)
+	if err != nil {
+		return
+	}
+	err = core.UnmarshalPrimitive(m, "units", &obj.Units)
 	if err != nil {
 		return
 	}
@@ -2638,7 +2679,7 @@ type AutoscalingGroup struct {
 
 	Memory *AutoscalingMemoryGroupMemory `json:"memory,omitempty"`
 
-	Cpu *AutoscalingCPUGroup `json:"cpu,omitempty"`
+	Cpu *AutoscalingCPUGroupCPU `json:"cpu,omitempty"`
 }
 
 
@@ -2653,7 +2694,7 @@ func UnmarshalAutoscalingGroup(m map[string]json.RawMessage, result interface{})
 	if err != nil {
 		return
 	}
-	err = core.UnmarshalModel(m, "cpu", &obj.Cpu, UnmarshalAutoscalingCPUGroup)
+	err = core.UnmarshalModel(m, "cpu", &obj.Cpu, UnmarshalAutoscalingCPUGroupCPU)
 	if err != nil {
 		return
 	}
@@ -2775,7 +2816,7 @@ type AutoscalingSetGroup struct {
 
 	Memory *AutoscalingMemoryGroupMemory `json:"memory,omitempty"`
 
-	Cpu *AutoscalingCPUGroup `json:"cpu,omitempty"`
+	Cpu *AutoscalingCPUGroupCPU `json:"cpu,omitempty"`
 }
 
 func (*AutoscalingSetGroup) isaAutoscalingSetGroup() bool {
@@ -2797,7 +2838,7 @@ func UnmarshalAutoscalingSetGroup(m map[string]json.RawMessage, result interface
 	if err != nil {
 		return
 	}
-	err = core.UnmarshalModel(m, "cpu", &obj.Cpu, UnmarshalAutoscalingCPUGroup)
+	err = core.UnmarshalModel(m, "cpu", &obj.Cpu, UnmarshalAutoscalingCPUGroupCPU)
 	if err != nil {
 		return
 	}
@@ -7557,7 +7598,7 @@ func UnmarshalWhitelistEntry(m map[string]json.RawMessage, result interface{}) (
 // AutoscalingSetGroupAutoscalingCPUGroup : AutoscalingSetGroupAutoscalingCPUGroup struct
 // This model "extends" AutoscalingSetGroup
 type AutoscalingSetGroupAutoscalingCPUGroup struct {
-	Cpu *AutoscalingCPUGroup `json:"cpu,omitempty"`
+	Cpu *AutoscalingCPUGroupCPU `json:"cpu,omitempty"`
 }
 
 
@@ -7568,7 +7609,7 @@ func (*AutoscalingSetGroupAutoscalingCPUGroup) isaAutoscalingSetGroup() bool {
 // UnmarshalAutoscalingSetGroupAutoscalingCPUGroup unmarshals an instance of AutoscalingSetGroupAutoscalingCPUGroup from the specified map of raw messages.
 func UnmarshalAutoscalingSetGroupAutoscalingCPUGroup(m map[string]json.RawMessage, result interface{}) (err error) {
 	obj := new(AutoscalingSetGroupAutoscalingCPUGroup)
-	err = core.UnmarshalModel(m, "cpu", &obj.Cpu, UnmarshalAutoscalingCPUGroup)
+	err = core.UnmarshalModel(m, "cpu", &obj.Cpu, UnmarshalAutoscalingCPUGroupCPU)
 	if err != nil {
 		return
 	}

@@ -1,4 +1,4 @@
-module github.com/ibm/experimental-go-sdk
+module github.com/IBM/experimental-go-sdk
 
 go 1.14
 
